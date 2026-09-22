@@ -1,10 +1,7 @@
 # Sleep Signal Viewer
 
 A web application for viewing and annotating overnight heart rate, wrist
-acceleration, and EEG sleep-stage labels from the BIDSleep dataset. The included
-demo uses a small downloaded subset of the full dataset: two participants with
-two nights each. These sample recordings are included so the app can run without
-downloading the full dataset. 
+acceleration, and EEG sleep-stage labels from the BIDSleep dataset.
 
 ## Features
 
@@ -26,7 +23,7 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -r backend/requirements.txt
 ```
 
-Start the backend and frontend in **two terminals**, both in the project folder:
+Start the backend and frontend in two terminals, both in the project folder:
 
 ```sh
 # Terminal 1
