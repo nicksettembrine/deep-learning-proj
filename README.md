@@ -56,3 +56,8 @@ under the [Open Data Commons Attribution License v1.0](https://physionet.org/con
 Song, T. (2026). *A Multi-Night Instantaneous Heart Rate and Accelerometry Dataset
 with EEG Sleep Stage Labels* (version 1.0.0). PhysioNet.
 https://doi.org/10.13026/a0sy-7t69
+
+## AI assistance
+
+The Codex agent was used to help generate and develop this application, including
+code, UI design, debugging, and documentation.
