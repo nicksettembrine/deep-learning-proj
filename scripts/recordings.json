@@ -1,0 +1,6 @@
+[
+  {"participant": "Bidslab00", "night": 1, "rawDirectory": "data/patient-1/night1"},
+  {"participant": "Bidslab00", "night": 2, "rawDirectory": "data/Bidslab00/2"},
+  {"participant": "Bidslab01", "night": 1, "rawDirectory": "data/Bidslab01/1"},
+  {"participant": "Bidslab01", "night": 2, "rawDirectory": "data/Bidslab01/2"}
+]

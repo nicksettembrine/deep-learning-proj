@@ -1,0 +1,30 @@
+[
+  {
+    "id": "Bidslab00-night-1",
+    "participant": "Bidslab00",
+    "night": 1,
+    "path": "data/Bidslab00/1",
+    "source": "https://physionet.org/content/bidsleep-dataset/1.0.0/Bidslab00/1/"
+  },
+  {
+    "id": "Bidslab00-night-2",
+    "participant": "Bidslab00",
+    "night": 2,
+    "path": "data/Bidslab00/2",
+    "source": "https://physionet.org/content/bidsleep-dataset/1.0.0/Bidslab00/2/"
+  },
+  {
+    "id": "Bidslab01-night-1",
+    "participant": "Bidslab01",
+    "night": 1,
+    "path": "data/Bidslab01/1",
+    "source": "https://physionet.org/content/bidsleep-dataset/1.0.0/Bidslab01/1/"
+  },
+  {
+    "id": "Bidslab01-night-2",
+    "participant": "Bidslab01",
+    "night": 2,
+    "path": "data/Bidslab01/2",
+    "source": "https://physionet.org/content/bidsleep-dataset/1.0.0/Bidslab01/2/"
+  }
+]
