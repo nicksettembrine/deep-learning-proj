@@ -34,3 +34,6 @@ backend/data/
 .env
 .env.*
 !.env.example
+
+# Personal demo and submission checklist.
+/SUBMISSION.md
