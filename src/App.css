@@ -111,7 +111,8 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .overview-introduction p { margin: 0 0 18px; font-size: 17px; line-height: 1.6; color: var(--text); }
 .overview-introduction .overview-source { font-size: 13px; color: var(--text-secondary); }
 .overview-help-heading { font-size: 24px; font-weight: 600; letter-spacing: -.02em; margin: 32px 0 14px; }
-.tab-list { max-width: 760px; }
+.tab-list { max-width: 850px; padding: 20px 32px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); }
+.tab-list div:last-child { padding-bottom: 0; }
 .help-steps { max-width: 850px; padding: 28px 32px 28px 52px; }
 .help-steps li { padding-left: 8px; margin-bottom: 20px; }
 .help-steps li:last-child { margin-bottom: 0; }
@@ -168,4 +169,17 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
   .annotation-list li { flex-direction: column; }
   .help-steps { padding: 22px 22px 22px 40px; }
 }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+/* Cards on the Overview, Model and Train tabs lift slightly on hover.
+   The Data Viewer card stays still so it doesn't move while you drag to zoom. */
+#panel-overview .help-steps, #panel-overview .tab-list, #panel-model .model-card, #panel-train .model-card {
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+#panel-overview .help-steps:hover, #panel-overview .tab-list:hover, #panel-model .model-card:hover, #panel-train .model-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 5%), 0 14px 36px rgb(0 0 0 / 9%);
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  #panel-overview .help-steps, #panel-overview .tab-list, #panel-model .model-card, #panel-train .model-card { transition: none; }
+  #panel-overview .help-steps:hover, #panel-overview .tab-list:hover, #panel-model .model-card:hover, #panel-train .model-card:hover { transform: none; }
+}
