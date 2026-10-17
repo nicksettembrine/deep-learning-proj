@@ -1,0 +1,42 @@
+{
+  "seed": 7400,
+  "stratified_by": "sex",
+  "test": [
+    "id1c7e64ad",
+    "id37a54bbf",
+    "id5308a7d6",
+    "idb221f542",
+    "idc735fc09"
+  ],
+  "val": [
+    "id1f372081",
+    "id3e3e50c7",
+    "id4ea159a8",
+    "id650857ca",
+    "idd80ac2b4"
+  ],
+  "train": [
+    "id00b70b13",
+    "id079c763c",
+    "id1165e00c",
+    "id34e056c8",
+    "id5993bf4a",
+    "id687ab496",
+    "id7c20ee7a",
+    "id82b9735c",
+    "id86237981",
+    "id8af5374b",
+    "id8e66893c",
+    "id9603e9c3",
+    "ida61e8ddf",
+    "idabd0c53c",
+    "idbae5a811",
+    "idc91a49d0",
+    "idecc9265e",
+    "idf1ce9a0f",
+    "idf540d82b",
+    "idf5e3678b",
+    "idfc5f05e4",
+    "idff99de96"
+  ]
+}

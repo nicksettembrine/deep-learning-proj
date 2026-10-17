@@ -81,14 +81,14 @@ export default function useAnnotations(recordingId) {
     finally { setSaving(false) }
   }
 
-  // Box selection uses chart hours. Store seconds to keep annotations independent
+  // Box selection uses chart minutes. Store seconds to keep annotations independent
   // of the display units, and support selection from any of the stacked panels.
   const hasDraft = Boolean(draft)
   const select = useCallback((event) => {
     if (!hasDraft || saving) return
     const range = Object.entries(event?.range ?? {}).find(([axis]) => axis.startsWith('x'))?.[1]
     if (!range || range.length !== 2) return
-    const [start, end] = [...range].sort((a, b) => a - b).map((hour) => Math.round(hour * 36000) / 10)
+    const [start, end] = [...range].sort((a, b) => a - b).map((minute) => Math.round(minute * 600) / 10)
     if (end > start) setDraft((current) => ({ ...current, start_seconds: start, end_seconds: end }))
   }, [hasDraft, saving])
 

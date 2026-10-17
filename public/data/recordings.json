@@ -1,30 +1,117 @@
 [
   {
-    "id": "Bidslab00-night-1",
-    "participant": "Bidslab00",
-    "night": 1,
-    "path": "data/Bidslab00/1",
-    "source": "https://physionet.org/content/bidsleep-dataset/1.0.0/Bidslab00/1/"
+    "id": "id1c7e64ad",
+    "participant": "id1c7e64ad",
+    "split": "test",
+    "path": "data/id1c7e64ad",
+    "duration_s": 3427.0,
+    "demographics": {
+      "sex": "female",
+      "age": 54,
+      "height_in": 62,
+      "weight_lbs": 165,
+      "right_handed": true
+    },
+    "activity_seconds": {
+      "Walking": 590.33,
+      "Descending stairs": 100.89,
+      "Ascending stairs": 108.65,
+      "Driving": 1414.06,
+      "Clapping": 45.91,
+      "Non-study": 1167.16
+    },
+    "source": "https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/"
   },
   {
-    "id": "Bidslab00-night-2",
-    "participant": "Bidslab00",
-    "night": 2,
-    "path": "data/Bidslab00/2",
-    "source": "https://physionet.org/content/bidsleep-dataset/1.0.0/Bidslab00/2/"
+    "id": "id37a54bbf",
+    "participant": "id37a54bbf",
+    "split": "test",
+    "path": "data/id37a54bbf",
+    "duration_s": 3315.0,
+    "demographics": {
+      "sex": "female",
+      "age": 52,
+      "height_in": 68,
+      "weight_lbs": 206,
+      "right_handed": true
+    },
+    "activity_seconds": {
+      "Walking": 523.55,
+      "Descending stairs": 98.58,
+      "Ascending stairs": 94.59,
+      "Driving": 1135.96,
+      "Clapping": 37.57,
+      "Non-study": 1424.75
+    },
+    "source": "https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/"
   },
   {
-    "id": "Bidslab01-night-1",
-    "participant": "Bidslab01",
-    "night": 1,
-    "path": "data/Bidslab01/1",
-    "source": "https://physionet.org/content/bidsleep-dataset/1.0.0/Bidslab01/1/"
+    "id": "id5308a7d6",
+    "participant": "id5308a7d6",
+    "split": "test",
+    "path": "data/id5308a7d6",
+    "duration_s": 3237.0,
+    "demographics": {
+      "sex": "female",
+      "age": 24,
+      "height_in": 63,
+      "weight_lbs": 100,
+      "right_handed": true
+    },
+    "activity_seconds": {
+      "Walking": 528.96,
+      "Descending stairs": 98.71,
+      "Ascending stairs": 94.04,
+      "Driving": 1527.36,
+      "Clapping": 42.62,
+      "Non-study": 945.31
+    },
+    "source": "https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/"
   },
   {
-    "id": "Bidslab01-night-2",
-    "participant": "Bidslab01",
-    "night": 2,
-    "path": "data/Bidslab01/2",
-    "source": "https://physionet.org/content/bidsleep-dataset/1.0.0/Bidslab01/2/"
+    "id": "idb221f542",
+    "participant": "idb221f542",
+    "split": "test",
+    "path": "data/idb221f542",
+    "duration_s": 2910.0,
+    "demographics": {
+      "sex": "male",
+      "age": 48,
+      "height_in": 70,
+      "weight_lbs": 244,
+      "right_handed": true
+    },
+    "activity_seconds": {
+      "Walking": 454.94,
+      "Descending stairs": 68.13,
+      "Ascending stairs": 81.55,
+      "Driving": 1383.95,
+      "Clapping": 39.98,
+      "Non-study": 881.45
+    },
+    "source": "https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/"
+  },
+  {
+    "id": "idc735fc09",
+    "participant": "idc735fc09",
+    "split": "test",
+    "path": "data/idc735fc09",
+    "duration_s": 3459.0,
+    "demographics": {
+      "sex": "male",
+      "age": 29,
+      "height_in": 76,
+      "weight_lbs": 250,
+      "right_handed": true
+    },
+    "activity_seconds": {
+      "Walking": 429.89,
+      "Descending stairs": 59.92,
+      "Ascending stairs": 68.92,
+      "Driving": 1449.69,
+      "Clapping": 35.57,
+      "Non-study": 1415.01
+    },
+    "source": "https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/"
   }
 ]

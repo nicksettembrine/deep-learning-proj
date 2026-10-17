@@ -28,7 +28,7 @@ dist-ssr
 __pycache__/
 backend/data/
 
-# Raw recordings stay local; prepared public/data samples are included.
+# Raw recordings (including data/physionet/) stay local; prepared public/data samples are included.
 /data/
 .Rhistory
 .env
@@ -37,3 +37,9 @@ backend/data/
 
 # Personal demo and submission checklist.
 /SUBMISSION.md
+*.zip
+*.zip.download/
+
+# Local Claude Code notes and settings.
+CLAUDE.md
+.claude/

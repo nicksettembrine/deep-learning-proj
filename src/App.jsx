@@ -1,21 +1,49 @@
-import { memo, useCallback, useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import Plot from 'react-plotly.js'
 import './App.css'
 import useAnnotations from './useAnnotations'
 import AnnotationPanel, { AnnotationForm } from './AnnotationPanel'
+import ModelPanel from './ModelPanel'
+import TrainPanel from './TrainPanel'
 
-// Shared signal colors keep traces, scales, and selection controls consistent.
-const SIGNALS = [
-  { id: 'sleep', label: 'Sleep stage', color: '#686D9F', title: 'Sleep Stage' },
-  { id: 'heart', label: 'Heart rate', color: '#AC6078', title: 'Heart Rate (bpm)' },
-  { id: 'motion', label: 'Acceleration', color: '#34827E', title: 'Acceleration (g)' },
+// HW2 model features (Run model button, predicted band and Model tab).
+const SHOW_MODEL = true
+
+// Colors come from Apple's system palette. Activities use the bright hues; sensors
+// and axes use colors the activity band never uses, so a signal color is never
+// mistaken for an activity label.
+// Four ActiGraph GT3X+ devices worn at the same time. Keys match the CSV prefixes.
+const SENSORS = [
+  { id: 'lw', label: 'Left wrist', color: '#1D1D1F' },   // graphite
+  { id: 'lh', label: 'Left hip', color: '#A2845E' },     // brown
+  { id: 'la', label: 'Left ankle', color: '#FF3B30' },   // red
+  { id: 'ra', label: 'Right ankle', color: '#8E8E93' },  // gray
 ]
-const STAGE_COLORS = ['#d4dae2', '#bbbcd7', '#969cc4', '#68739d', '#b28ca6', '#e5e7eb']
-const duration = (seconds) => {
-  const minutes = Math.round(seconds / 60)
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`
+const AXIS_COLORS = { x: '#FF3B30', y: '#32ADE6', z: '#1D1D1F' }  // red, cyan, graphite
+// Activity codes from the dataset. Order defines the colors in the label band.
+const ACTIVITIES = [
+  { code: 1, label: 'Walking', color: '#007AFF' },            // blue
+  { code: 2, label: 'Descending stairs', color: '#FF9500' },  // orange
+  { code: 3, label: 'Ascending stairs', color: '#AF52DE' },   // purple
+  { code: 4, label: 'Driving', color: '#34C759' },            // green
+  { code: 77, label: 'Clapping', color: '#FFCC00' },          // yellow
+  { code: 99, label: 'Non-study', color: '#E5E5EA' },         // light gray
+]
+const GRID = '#F0F0F2'
+// Plot layout sizes in pixels.
+const BAND_PX = 22, BAND_GAP = 4, PANEL_PX = 150, PANEL_GAP = 20, OVERLAY_PX = 380
+const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif'
+const ACTIVITY_INDEX =Object.fromEntries(ACTIVITIES.map((a, i) => [a.code, i]))
+const minutes = (seconds) => `${Math.floor(seconds / 60)}m ${String(Math.round(seconds % 60)).padStart(2, '0')}s`
+
+// Display files store integer milli-g; convert every channel to g once after loading.
+function toG(file) {
+  const convert = (values) => Float32Array.from(values, (v) => v / 1000)
+  const sensors = Object.fromEntries(Object.entries(file.sensors).map(([id, channel]) => [id,
+    Array.isArray(channel) ? convert(channel)
+      : Object.fromEntries(Object.entries(channel).map(([axis, values]) => [axis, convert(values)]))]))
+  return { ...file, sensors }
 }
-const STAGES = ['Wake', 'N1', 'N2', 'N3', 'REM', 'Unknown']
 
 // Treat HTTP failures as errors instead of attempting to plot an error page.
 async function readJson(path, signal) {
@@ -31,7 +59,8 @@ async function readJson(path, signal) {
 
 function App() {
   const [activeTab, setActiveTab] = useState('viewer')
-  const tabs = [{ id: 'overview', label: 'Overview' }, { id: 'viewer', label: 'Data Viewer' }]
+  const tabs = [{ id: 'overview', label: 'Overview' }, { id: 'viewer', label: 'Data Viewer' },
+    ...(SHOW_MODEL ? [{ id: 'model', label: 'Model' }, { id: 'train', label: 'Train' }] : [])]
 
   // Keep the viewer mounted to preserve drafts and zoom. Resize Plotly only
   // after its panel becomes visible again (including a changed window width).
@@ -46,8 +75,7 @@ function App() {
   const [catalogError, setCatalogError] = useState('')
   const [retry, setRetry] = useState(0)
 
-  // The catalog controls which participants and nights are available. Adding
-  // prepared recordings does not require hard-coding more dropdown options.
+  // The catalog written by scripts/preprocess.py controls which participants appear.
   useEffect(() => {
     const controller = new AbortController()
     readJson('data/recordings.json', controller.signal)
@@ -64,22 +92,21 @@ function App() {
   }, [retry])
 
   const selected = catalog.find((recording) => recording.id === selectedId)
-  const participants = [...new Set(catalog.map((recording) => recording.participant))]
-  const nights = catalog.filter((recording) => recording.participant === selected?.participant)
+  // Stacked/Overlay, Magnitude/x-y-z, and which sensors are shown (left wrist by default: the model's input).
+  const [viewPrefs, setViewPrefs] = useState({ viewMode: 'stacked', signalMode: 'vm', sensors: ['lw'] })
+  const openParticipant = useCallback((id) => { setSelectedId(id); setActiveTab('viewer') }, [])
 
   return (
     <>
-      {/* Keep the application identity separate from the selected recording. */}
       <header className="app-bar">
         <div className="app-bar-inner">
           <div className="brand">
             <span className="brand-mark" aria-hidden="true">
               <svg viewBox="0 0 32 32" fill="none">
-                <circle cx="14" cy="18" r="10" />
-                <path d="M8 17q2 3 4 0M16 17q2 3 4 0M12 23q2 1 4 0M23 5h5l-5 5h5" />
+                <path d="M2 18h5l3-8 5 14 4-10 3 4h8" />
               </svg>
             </span>
-            <span>Sleep Signal Viewer</span>
+            <span>Accelerometry Activity Viewer</span>
           </div>
           <nav className="app-tabs" role="tablist" aria-label="Project sections">
             {tabs.map((tab, index) => (
@@ -107,60 +134,55 @@ function App() {
           <h1>Project overview</h1>
         </header>
         <div className="overview-introduction">
-          <p>This application provides a way to view and annotate sleep recordings from the BIDSleep dataset. You can select a participant and night to observe heart rate and wrist acceleration with EEG sleep-stage labels. </p>
-          <p className="overview-source">Data source: <a href="https://physionet.org/content/bidsleep-dataset/1.0.0/">BIDSleep on PhysioNet</a></p>
+          <p>This app shows raw accelerometry from 32 healthy adults who wore four sensors (left wrist, left hip, and both ankles) while they walked outdoors, climbed stairs, and drove. Every sample is labeled with the activity. A small neural network reads 4-second windows of the <strong>left-wrist</strong> signal, like a smartwatch, and predicts which of four activities is happening: walking, going down stairs, going up stairs, or driving.</p>
+          <p className="overview-source">Data source: <a href="https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/">Labeled raw accelerometry data captured during walking, stair climbing and driving (PhysioNet)</a></p>
         </div>
-        <h2 className="overview-help-heading">How to use the viewer</h2>
+
+        <h2 className="overview-help-heading">What each tab does</h2>
+        <div className="tab-guide">
+          <button onClick={() => setActiveTab('viewer')}><h3>Data Viewer</h3>
+            <p>Browse one participant’s signals and activity labels, run the model on them, and add annotations.</p></button>
+          {SHOW_MODEL && <>
+            <button onClick={() => setActiveTab('model')}><h3>Model</h3>
+              <p>How the network was built and trained, and how well it does on five people it never saw.</p></button>
+            <button onClick={() => setActiveTab('train')}><h3>Train</h3>
+              <p>Change the network’s settings, watch it train live, and compare it with the saved model.</p></button>
+          </>}
+        </div>
+
+        <h2 className="overview-help-heading">How to use the Data Viewer</h2>
         <ol className="help-steps">
-          <li><h3>Choose a participant and night</h3></li>
-          <li><h3>Compare signals</h3><p>Stacked shows all three plots on a shared time axis. Overlay lets you select individual signals. Sleep stages appear as a colored strip when combined with wearable signals.</p></li>
-          <li><h3>Inspect a time interval</h3><p>Drag across a plot to zoom. Hover over a signal for its value and time. Double-click restores the entire recording.</p></li>
-          <li><h3>Add an annotation</h3><p>Click Add annotation, then drag over the plot to select an interval or enter start and end times in seconds relative to the EEG start. Add a label and optional note, then save.</p></li>
-          <li><h3>Revisit your observations</h3><p>Click a saved annotation’s label to zoom to it. Hover or focus its row to highlight the interval.</p></li>
+          <li><h3>Choose a participant</h3><p>Use the dropdown or the ‹ › arrows. The five participants shown were held out from training. Each session lasts about 48–58 minutes.</p></li>
+          <li><h3>Choose sensors and a view</h3><p>Tick the sensors to show; the left wrist (the model’s input) is shown by default. Stacked gives each sensor its own panel, and Overlay draws them on one scale. Magnitude shows overall movement; x / y / z shows the three axes separately.</p></li>
+          {SHOW_MODEL && <li><h3>Run the model</h3><p>Click Run model. A Predicted band appears under the True activity labels; hover over it to see the model’s probabilities. The score next to the button says how often the prediction matches the true label.</p></li>}
+          <li><h3>Zoom in</h3><p>Drag across the plot to zoom in. Hover for values. Double-click to see the whole session again.</p></li>
+          <li><h3>Annotate</h3><p>Click Add annotation, then drag over the plot or type start and end times in seconds. Add a label and an optional note, then save. Click a saved annotation’s label to return to that interval.</p></li>
         </ol>
       </section>
-      {/* Hiding instead of unmounting preserves the complete viewer session. */}
-      <section id="panel-viewer" role="tabpanel" aria-labelledby="tab-viewer" hidden={activeTab !== 'viewer'} tabIndex={0}>
-      <header className="viewer-header"><h1>Sleep Signal Viewer</h1></header>
-
-      {selected && (
-        <section className="recording-controls" aria-label="Choose a recording">
-          <div className="selection-heading">
-            <h2>Select a recording</h2>
-            <p>{participants.length} {participants.length === 1 ? 'participant' : 'participants'} · {catalog.length} {catalog.length === 1 ? 'night' : 'nights'} available</p>
-          </div>
-          <label>
-            Participant
-            <select value={selected.participant} onChange={(event) => {
-              // Start at the first available night for the new participant;
-              // participants need not have the same number of recordings.
-              setSelectedId(catalog.find((recording) =>
-                recording.participant === event.target.value).id)
-            }}>
-              {participants.map((participant) => (
-                <option key={participant} value={participant}>{participant}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Night
-            <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
-              {nights.map((recording) => (
-                <option key={recording.id} value={recording.id}>Night {recording.night}</option>
-              ))}
-            </select>
-          </label>
+      {SHOW_MODEL && (
+        <section id="panel-model" role="tabpanel" aria-labelledby="tab-model" hidden={activeTab !== 'model'} tabIndex={0}>
+          <header className="viewer-header"><h1>Activity classifier</h1></header>
+          <ModelPanel active={activeTab === 'model'} onOpenParticipant={openParticipant} />
         </section>
       )}
-
+      {SHOW_MODEL && (
+        <section id="panel-train" role="tabpanel" aria-labelledby="tab-train" hidden={activeTab !== 'train'} tabIndex={0}>
+          <header className="viewer-header"><h1>Train the network</h1></header>
+          <TrainPanel active={activeTab === 'train'} />
+        </section>
+      )}
+      {/* Hiding instead of unmounting preserves the complete viewer session. */}
+      <section id="panel-viewer" role="tabpanel" aria-labelledby="tab-viewer" hidden={activeTab !== 'viewer'} tabIndex={0}>
       {catalogError ? (
         <div className="viewer-message" role="alert">
           <p>{catalogError}</p>
           <button onClick={() => setRetry((value) => value + 1)}>Retry</button>
         </div>
       ) : selected ? (
-        // A new key clears the previous signals and Plotly zoom immediately.
-        <RecordingViewer key={selected.id} recording={selected} />
+        // A new key clears the previous signals, zoom and prediction immediately.
+        // View choices live here, so they carry over when moving between participants.
+        <RecordingViewer key={selected.id} recording={selected} catalog={catalog}
+          onSelect={setSelectedId} prefs={viewPrefs} setPrefs={setViewPrefs} />
       ) : <p className="viewer-message" role="status">Loading recordings…</p>}
       </section>
       </main>
@@ -168,135 +190,177 @@ function App() {
   )
 }
 
-function RecordingViewer({ recording }) {
+function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs }) {
   const annotations = useAnnotations(recording.id)
   const [focus, setFocus] = useState(null)
   const [highlightedId, setHighlightedId] = useState(null)
   const resetView = useCallback(() => setFocus({ range: null, revision: Date.now() }), [])
+  const zoomSeconds = useCallback((start, end) => {
+    const padding = Math.max((end - start) * 0.1, 5)
+    setFocus({ range: [(start - padding) / 60, (end + padding) / 60], revision: Date.now() })
+  }, [])
 
   function focusAnnotation(item) {
     setHighlightedId(item.id)
-    const padding = Math.max((item.end_seconds - item.start_seconds) * 0.1, 10)
-    setFocus({ range: [(item.start_seconds - padding) / 3600, (item.end_seconds + padding) / 3600], revision: Date.now() })
+    zoomSeconds(item.start_seconds, item.end_seconds)
     document.querySelector('.chart-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  // Display mode changes axis placement only; the signal values are unchanged.
-  const [viewMode, setViewMode] = useState('stacked')
+  const { viewMode, signalMode, sensors: selectedSensors } = prefs
+  const setPref = (key, value) => setPrefs((current) => ({ ...current, [key]: value }))
   const overlay = viewMode === 'overlay'
-  // Overlay starts with two physical measurements. Keep at least one selected;
-  // stacked view always shows all three and preserves this overlay selection.
-  const [selectedSignals, setSelectedSignals] = useState(['heart', 'motion'])
-  const [signals, setSignals] = useState(null)
+  const showAxes = !overlay && signalMode === 'xyz'
+  const [data, setData] = useState(null)
+  const [xyz, setXyz] = useState(null)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const [prediction, setPrediction] = useState(null)
+  const [predicting, setPredicting] = useState(false)
+  const [predictError, setPredictError] = useState('')
 
+  // Send the recording to the backend, which runs the trained MLP on every 4-s wrist window.
+  async function runModel() {
+    setPredicting(true); setPredictError('')
+    try {
+      const response = await fetch(`/api/recordings/${encodeURIComponent(recording.id)}/predict`, { method: 'POST' })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(body.detail ?? 'Model service unavailable. Start the backend and retry.')
+      setPrediction(body)
+    } catch (failure) { setPredictError(failure.message) }
+    finally { setPredicting(false) }
+  }
+
+  // Magnitude and labels load together; the larger x/y/z file loads only when requested.
   useEffect(() => {
     const controller = new AbortController()
-    // Commit all three files together so no chart mixes different nights.
-    // Abort obsolete requests when the user switches recordings quickly.
-    Promise.all(['hr.json', 'sleep_stages.json', 'motion.json'].map((filename) =>
+    Promise.all(['vm.json', 'activity.json'].map((filename) =>
       readJson(`${recording.path}/${filename}`, controller.signal)))
-      .then(([hrData, sleepData, motionData]) => {
-        setSignals({ hrData, sleepData, motionData })
-      })
-      .catch((failure) => {
-        if (failure.name !== 'AbortError') setError(failure.message)
-      })
+      .then(([vm, activity]) => setData({ vm: toG(vm), activity }))
+      .catch((failure) => { if (failure.name !== 'AbortError') setError(failure.message) })
     return () => controller.abort()
   }, [recording.path, retry])
 
-  if (error) return (
+  useEffect(() => {
+    if (!showAxes || xyz) return
+    const controller = new AbortController()
+    readJson(`${recording.path}/xyz.json`, controller.signal)
+      .then((file) => setXyz(toG(file)))
+      .catch((failure) => { if (failure.name !== 'AbortError') setError(failure.message) })
+    return () => controller.abort()
+  }, [showAxes, xyz, recording.path])
+
+  const demo = recording.demographics ?? {}
+  const index = catalog.findIndex((r) => r.id === recording.id)
+
+  let body
+  if (error) body = (
     <div className="viewer-message" role="alert">
-      <p>Unable to load {recording.participant}, Night {recording.night}. {error}</p>
+      <p>Unable to load {recording.participant}. {error}</p>
       <button onClick={() => { setError(''); setRetry((value) => value + 1) }}>Retry</button>
     </div>
   )
-  if (!signals) return (
-    <p className="viewer-message" role="status">
-      Loading {recording.participant}, Night {recording.night}…
-    </p>
+  else if (!data) body = <p className="viewer-message" role="status">Loading {recording.participant}…</p>
+  else body = (
+    <>
+      <AnnotationForm annotations={annotations} />
+      <div className="stage-legend" aria-label="Activity colors">
+        {ACTIVITIES.map((a) => <span key={a.code}><i style={{ background: a.color }} />{a.label}</span>)}
+      </div>
+      {showAxes && !xyz ? <p className="viewer-message" role="status">Loading x/y/z axes…</p> : (
+        <SignalPlot data={data} xyz={showAxes ? xyz : null} overlay={overlay} prediction={prediction}
+          selectedSensors={selectedSensors} recordingId={recording.id} focus={focus}
+          highlightedId={highlightedId} items={annotations.items} editingId={annotations.editingId}
+          hasDraft={Boolean(annotations.draft)} draftStart={annotations.draft?.start_seconds}
+          draftEnd={annotations.draft?.end_seconds} onSelected={annotations.select} onReset={resetView} />
+      )}
+    </>
   )
-  const { hrData, sleepData, motionData } = signals
-  const hasUnknown = sleepData.some((sample) => sample.Stage === 5)
-  const activeSignals = overlay
-    ? SIGNALS.filter((signal) => selectedSignals.includes(signal.id)) : SIGNALS
-  // A categorical strip provides sleep context without a third overlapping scale.
-  const stageStrip = overlay && activeSignals.some((signal) => signal.id === 'sleep') && activeSignals.length > 1
-  const eegEnd = sleepData.length ? sleepData[sleepData.length - 1].ElapsedSeconds + 30 : 0
-  const outsideEEG = [hrData, motionData].some((rows) => rows.length && rows[rows.length - 1].ElapsedSeconds > eegEnd + 60)
-
-
 
   return (
     <>
-      <section className="chart-panel" aria-label="Overnight sleep recording signals">
+      <section className="chart-panel" aria-label="Accelerometry recording signals">
+        {/* Row 1: which participant, and how the signals are arranged. */}
         <div className="chart-header">
-          <div className="recording-identity">
-            <h2 className="recording-heading">{recording.participant}<span className="night-badge">Night {recording.night}</span></h2>
-            <span className="recording-duration">EEG duration · {duration(eegEnd)}</span>
+          <div className="participant-nav">
+            <button className="icon-button" aria-label="Previous participant" disabled={index <= 0}
+              onClick={() => onSelect(catalog[index - 1].id)}>‹</button>
+            <select aria-label="Participant" value={recording.id} onChange={(event) => onSelect(event.target.value)}>
+              {catalog.map((r) => <option key={r.id} value={r.id}>{r.participant}</option>)}
+            </select>
+            <button className="icon-button" aria-label="Next participant" disabled={index >= catalog.length - 1}
+              onClick={() => onSelect(catalog[index + 1].id)}>›</button>
+            <span className="recording-duration">
+              {index + 1} of {catalog.length} · {minutes(recording.duration_s)}
+              {demo.age ? ` · ${demo.sex}, ${demo.age} y` : ''}
+            </span>
           </div>
-          <div className="view-toggle" role="group" aria-label="Plot arrangement">
-            {['stacked', 'overlay'].map((mode) => (
-              <button key={mode} aria-pressed={viewMode === mode}
-                onClick={() => setViewMode(mode)}>
-                {mode === 'stacked' ? 'Stacked' : 'Overlay'}
-              </button>
-            ))}
+          <div className="header-toggles">
+            <div className="view-toggle" role="group" aria-label="Plot arrangement">
+              {[['stacked', 'Stacked'], ['overlay', 'Overlay']].map(([mode, label]) => (
+                <button key={mode} aria-pressed={viewMode === mode} onClick={() => setPref('viewMode', mode)}>{label}</button>
+              ))}
+            </div>
+            {!overlay && (
+              <div className="view-toggle" role="group" aria-label="Signal shown in each panel">
+                {[['vm', 'Magnitude'], ['xyz', 'x / y / z']].map(([mode, label]) => (
+                  <button key={mode} aria-pressed={signalMode === mode} onClick={() => setPref('signalMode', mode)}>{label}</button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Row 2: which sensors to show, navigation, and annotation. */}
         <div className="chart-guide">
-          {overlay ? (
-            <div className="signal-options" role="group" aria-label="Signals to overlay">
-              {SIGNALS.map((signal) => {
-                const checked = selectedSignals.includes(signal.id)
-                return (
-                  <label key={signal.id} className={`signal-option${checked ? ' selected' : ''}`}
-                    style={{ '--signal-color': signal.color }}>
-                    <input type="checkbox" checked={checked}
-                      disabled={checked && selectedSignals.length === 1}
-                      onChange={() => setSelectedSignals((current) => checked
-                        ? current.filter((id) => id !== signal.id) : [...current, signal.id])} />
-                    {signal.label}
-                  </label>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="signal-key" aria-label="Displayed signals">
-              {SIGNALS.map((signal) => <span key={signal.id}>
-                <i style={{ background: signal.color }} />{signal.label}
-              </span>)}
-            </div>
-          )}
+          <div className="signal-options" role="group" aria-label="Sensors shown">
+            {SENSORS.map((sensor) => {
+              const checked = selectedSensors.includes(sensor.id)
+              return (
+                // Stacked panels are all graphite, so only Overlay chips carry the sensor color.
+                <label key={sensor.id} className={`signal-option${checked ? ' selected' : ''}`}
+                  style={{ '--signal-color': overlay ? sensor.color : '#1D1D1F' }}>
+                  <input type="checkbox" checked={checked}
+                    disabled={checked && selectedSensors.length === 1}
+                    onChange={() => setPref('sensors', checked
+                      ? selectedSensors.filter((id) => id !== sensor.id)
+                      : SENSORS.map((s) => s.id).filter((id) => id === sensor.id || selectedSensors.includes(id)))} />
+                  {sensor.label}
+                </label>
+              )
+            })}
+          </div>
           <div className="annotation-actions">
-            <span>{annotations.draft ? 'Drag to mark an interval' : 'Drag to zoom · Double-click to reset'}</span>
+            {annotations.draft && <span>Drag across the plot to mark an interval</span>}
             <button onClick={annotations.add} disabled={Boolean(annotations.draft) || annotations.saving}>Add annotation</button>
           </div>
         </div>
-        <div className="time-controls">
-          <div className="annotation-actions">
-            <button onClick={() => setFocus({ range: [0, eegEnd / 3600], revision: Date.now() })}>Fit EEG window</button>
-            <button onClick={resetView}>Show full recording</button>
-          </div>
 
-        </div>
-        {outsideEEG && <p className="coverage-note">Wearable data extends beyond the EEG labels. “Fit EEG window” focuses on their shared period without removing data.</p>}
-        <AnnotationForm annotations={annotations} />
-        {/* One Plotly figure contains all three signals so their
-            time axes can remain synchronized during zooming and panning. */}
-        {overlay && <p className="overlay-note">{stageStrip ? 'Sleep stages appear in the strip above the signals. ' : ''}Each signal uses its own vertical scale; compare timing, not line heights.</p>}
-        {stageStrip && <div className="stage-legend" aria-label="Sleep-stage colors">{STAGES.slice(0, hasUnknown ? 6 : 5).map((stage, i) => <span key={stage}><i style={{ background: STAGE_COLORS[i] }} />{stage}</span>)}</div>}
-        <SignalPlot signals={signals} overlay={overlay} selectedSignals={selectedSignals}
-          recordingId={recording.id} focus={focus} highlightedId={highlightedId}
-          items={annotations.items} editingId={annotations.editingId}
-          hasDraft={Boolean(annotations.draft)} draftStart={annotations.draft?.start_seconds}
-          draftEnd={annotations.draft?.end_seconds} onSelected={annotations.select} onReset={resetView} />
+        {/* Row 3: the HW2 model, kept separate from navigation. */}
+        {SHOW_MODEL && (
+          <div className="model-strip">
+            <div>
+              <strong>Wrist model</strong>
+              <span>Predicts the activity of each 4-second window from the left-wrist sensor only.</span>
+            </div>
+            <div className="annotation-actions">
+              {prediction?.model === 'experiment' && <span className="model-badge">Your trained run</span>}
+              {prediction && prediction.accuracy !== null && (
+                <span className="model-result">Matches the true label in <strong>{(prediction.accuracy * 100).toFixed(1)}%</strong> of {prediction.scored_windows} labeled windows</span>
+              )}
+              {predictError && <span role="alert">{predictError}</span>}
+              <button className="primary-button" onClick={runModel} disabled={predicting || !data}>
+                {predicting ? 'Running…' : prediction ? 'Re-run model' : 'Run model'}</button>
+            </div>
+          </div>
+        )}
+        {body}
       </section>
       <AnnotationPanel annotations={annotations} onFocus={focusAnnotation} highlightedId={highlightedId} onHighlight={setHighlightedId} />
       <p className="source-note">
-        Data: <a href={recording.source}>BIDSleep / PhysioNet</a> (Song, 2026), under the{' '}
-        <a href="https://physionet.org/content/bidsleep-dataset/view-license/1.0.0/">ODC Attribution License</a>.
+        Data: <a href={recording.source}>Karas, Urbanek, Crainiceanu, Harezlak &amp; Fadel (2021), PhysioNet</a>,
+        doi:10.13026/51h0-a262, under the{' '}
+        <a href="https://physionet.org/content/accelerometry-walk-climb-drive/view-license/1.0.0/">Open Database License v1.0</a>.
+        Displayed at 25 Hz (block means of the raw 100 Hz signal).
       </p>
     </>
   )
@@ -304,233 +368,146 @@ function RecordingViewer({ recording }) {
 
 // Text edits stay in the lightweight form. Only signal, interval, or chart
 // changes cross this memo boundary, avoiding Plotly redraws on each keystroke.
-const SignalPlot = memo(function SignalPlot({ signals, overlay, selectedSignals,
+const SignalPlot = memo(function SignalPlot({ data, xyz, overlay, prediction, selectedSensors,
   recordingId, focus, highlightedId, items, editingId, hasDraft, draftStart,
   draftEnd, onSelected, onReset }) {
-  const { hrData, sleepData, motionData } = signals
-  const hasUnknown = sleepData.some((sample) => sample.Stage === 5)
-  const activeSignals = overlay ? SIGNALS.filter((signal) => selectedSignals.includes(signal.id)) : SIGNALS
-  const stageStrip = overlay && activeSignals.some((signal) => signal.id === 'sleep') && activeSignals.length > 1
-  const plotSignals = stageStrip ? activeSignals.filter((signal) => signal.id !== 'sleep') : activeSignals
-  const eegEnd = sleepData.length ? sleepData[sleepData.length - 1].ElapsedSeconds + 30 : 0
+  const { vm, activity } = data
+  // Time is implicit in the files (sample i at i / fs seconds); build it once, in minutes.
+  const length = vm.sensors.lw.length
+  const time = useMemo(() => Float64Array.from({ length }, (_, i) => i / vm.fs / 60), [length, vm.fs])
   const timeRange = focus?.range ? { range: focus.range, autorange: false } : { autorange: true }
-  const overlayAxes = {}
-  // Assign scales only to visible continuous signals, left then right.
-  // Sleep stages use their own strip when combined with wearable signals.
-  // Values stay in original units; no normalization is applied here.
-  plotSignals.forEach((signal, index) => {
-    overlayAxes[index === 0 ? 'yaxis' : `yaxis${index + 1}`] = {
-      title: { text: signal.title, standoff: 12 },
-      color: signal.color, automargin: true, domain: stageStrip ? [0, 0.76] : [0, 1],
-      side: index === 0 ? 'left' : 'right',
-      anchor: index === 2 ? 'free' : 'x',
-      ...(index > 0 ? { overlaying: 'y' } : {}),
-      ...(index === 2 ? { position: 1, shift: 75 } : {}),
-      showgrid: index === 0, gridcolor: '#edf0f4', zeroline: false,
-      ...(signal.id === 'sleep' ? {
-        tickvals: hasUnknown ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 4],
-        ticktext: hasUnknown ? STAGES : STAGES.slice(0, 5),
-      } : { tickformat: signal.id === 'motion' ? '.2f' : '.0f' }),
-    }
-  })
+  const mode = hasDraft ? 'lines+markers' : 'lines'
+  // Invisible markers make line traces selectable for box-selection annotations.
+  const marker = { opacity: 0, size: 2 }
+
+  // Activity labels as a one-row heatmap; x holds segment edges so each bar spans its interval.
+  const band = {
+    type: 'heatmap', x: [...activity.map((s) => s.start / 60), activity.at(-1).end / 60], y: [0],
+    z: [activity.map((s) => ACTIVITY_INDEX[s.code] ?? 5)],
+    customdata: [activity.map((s) => `${s.label} (${(s.end - s.start).toFixed(1)} s)`)],
+    zmin: -0.5, zmax: ACTIVITIES.length - 0.5, showscale: false,
+    colorscale: ACTIVITIES.flatMap((a, i) => [[i / ACTIVITIES.length, a.color], [(i + 1) / ACTIVITIES.length, a.color]]),
+    hovertemplate: '%{customdata}<extra></extra>', xaxis: 'x', yaxis: 'y',
+  }
+
+  const traces = [band]
+  // Band labels are horizontal annotations: rotated axis titles would overlap on the thin bands.
+  const bandLabels = []
+  const bandAxis = (domain, text) => {
+    bandLabels.push({ text, xref: 'paper', yref: 'paper', x: 0, xanchor: 'right', xshift: -8,
+      y: (domain[0] + domain[1]) / 2, yanchor: 'middle', showarrow: false, font: { size: 11, color: '#6E6E73' } })
+    return { domain, showticklabels: false, ticks: '', showgrid: false, zeroline: false, fixedrange: true }
+  }
+  // Layout in pixels, so bands and panels keep their size however many sensors are shown.
+  // Plotly wants fractions of the plot area (1 = top), so `domain` converts.
+  const shown = SENSORS.filter((s) => selectedSensors.includes(s.id))
+  const showLegend = Boolean(xyz)
+  const bandsPx = prediction ? 2 * BAND_PX + BAND_GAP : BAND_PX
+  const signalTop = bandsPx + 16
+  const area = signalTop + (overlay ? OVERLAY_PX : shown.length * PANEL_PX + (shown.length - 1) * PANEL_GAP)
+  const margin = { l: 85, r: 24, t: showLegend ? 36 : 12, b: 56 }
+  const domain = (fromTop, size) => [Math.max(0, 1 - (fromTop + size) / area), Math.min(1, 1 - fromTop / area)]
+  // With predictions, a second band sits directly under the true labels for comparison.
+  const layoutAxes = { yaxis: bandAxis(domain(0, BAND_PX), prediction ? 'True' : 'Activity') }
+  if (prediction) {
+    const w = prediction.windows
+    traces.push({
+      type: 'heatmap', x: [...w.map((d) => d.start / 60), w.at(-1).end / 60], y: [0],
+      z: [w.map((d) => ACTIVITY_INDEX[d.pred])], zmin: -0.5, zmax: ACTIVITIES.length - 0.5, showscale: false,
+      colorscale: band.colorscale, xaxis: 'x', yaxis: 'y7',
+      customdata: [w.map((d) => `Predicted: ${ACTIVITIES[ACTIVITY_INDEX[d.pred]].label}`
+        + (d.true ? ` (true: ${ACTIVITIES[ACTIVITY_INDEX[d.true]].label})` : '') + '<br>'
+        + prediction.classes.map((c, i) => `${c}: ${(d.probs[i] * 100).toFixed(0)}%`).join('<br>'))],
+      hovertemplate: '%{customdata}<extra></extra>',
+    })
+    layoutAxes.yaxis7 = bandAxis(domain(BAND_PX + BAND_GAP, BAND_PX), 'Predicted')
+  }
+  if (overlay) {
+    shown.forEach((sensor) => traces.push({
+      type: 'scattergl', mode, marker, x: time, y: vm.sensors[sensor.id], name: sensor.label,
+      line: { color: sensor.color, width: 1 }, opacity: 0.7, xaxis: 'x', yaxis: 'y2',
+      hovertemplate: `${sensor.label}: %{y:.3f} g<br>%{x:.2f} min<extra></extra>`,
+    }))
+    layoutAxes.yaxis2 = { domain: domain(signalTop, OVERLAY_PX), title: { text: 'Magnitude (g)', standoff: 12 }, automargin: true,
+      gridcolor: GRID, zeroline: false }
+  } else {
+    // Stacked: one panel per shown sensor, all sharing the single time axis.
+    shown.forEach((sensor, index) => {
+      const axis = `y${index + 2}`
+      layoutAxes[`yaxis${index + 2}`] = {
+        domain: domain(signalTop + index * (PANEL_PX + PANEL_GAP), PANEL_PX), title: { text: `${sensor.label} (g)`, standoff: 10, font: { size: 11 } },
+        automargin: true, gridcolor: GRID, zeroline: false, tickformat: '.1f',
+      }
+      if (xyz) {
+        // Every panel uses the same three axis colors, so the legend lists x, y and z once.
+        ['x', 'y', 'z'].forEach((ax) => traces.push({
+          type: 'scattergl', mode, marker, x: time, y: xyz.sensors[sensor.id][ax], name: `${ax} axis`,
+          legendgroup: ax, showlegend: index === 0,
+          line: { color: AXIS_COLORS[ax], width: 0.9 }, xaxis: 'x', yaxis: axis,
+          hovertemplate: `${sensor.label} ${ax}: %{y:.3f} g<br>%{x:.2f} min<extra></extra>`,
+        }))
+      } else {
+        // Each panel is labeled, so stacked panels share one calm graphite tone;
+        // sensor colors are only needed in Overlay, where lines share an axis.
+        traces.push({
+          type: 'scattergl', mode, marker, x: time, y: vm.sensors[sensor.id], name: sensor.label,
+          line: { color: '#48484A', width: 0.8 }, xaxis: 'x', yaxis: axis,
+          hovertemplate: `${sensor.label}: %{y:.3f} g<br>%{x:.2f} min<extra></extra>`,
+        })
+      }
+    })
+  }
+
   return (
-        <Plot
-          // Remount when changing arrangement to clear obsolete axes and zoom.
-          key={overlay ? `overlay-${activeSignals.map((signal) => signal.id).join('-')}` : 'stacked'}
-          data={[
-            {
-              // Expert-reviewed EEG sleep stage every 30 seconds.
-              // Divide elapsed seconds by 3600 to display time in hours.
-              x: sleepData.map((d) => d.ElapsedSeconds / 3600),
-              y: sleepData.map((d) => d.Stage),
-              type: 'scatter',
-              mode: hasDraft ? 'lines+markers' : 'lines',
-              // Invisible markers enable Plotly box-selection for line traces.
-              marker: { opacity: 0, size: 2 },
-
-              // Sleep stages are discrete categories, so use a step line
-              // rather than interpolating diagonally between stages.
-              line: { shape: 'hv', color: SIGNALS[0].color, width: 1.8 },
-              customdata: sleepData.map((d) => STAGES[d.Stage] ?? 'Unknown'),
-              hovertemplate: 'Sleep stage: %{customdata}<br>Time: %{x:.2f} hr<extra></extra>',
-
-              name: 'Sleep Stage',
-              xaxis: 'x',
-              yaxis: 'y',
-            },
-            {
-              // Apple Watch heart-rate measurements.
-              x: hrData.map((d) => d.ElapsedSeconds / 3600),
-              y: hrData.map((d) => d.HR),
-              type: 'scatter',
-              mode: hasDraft ? 'lines+markers' : 'lines',
-              // Invisible markers enable Plotly box-selection for line traces.
-              marker: { opacity: 0, size: 2 },
-              name: 'Heart Rate',
-              line: { color: SIGNALS[1].color, width: 1.4 },
-              hovertemplate: 'Heart rate: %{y:.1f} bpm<br>Time: %{x:.2f} hr<extra></extra>',
-              xaxis: overlay ? 'x' : 'x2',
-              yaxis: 'y2',
-            },
-            {
-              // Apple Watch acceleration magnitude. preprocess.py
-              // averages the raw ~50 Hz signal within one-second bins
-              // for visualization only.
-              x: motionData.map((d) => d.ElapsedSeconds / 3600),
-              y: motionData.map((d) => d.magnitude),
-              type: 'scatter',
-              mode: hasDraft ? 'lines+markers' : 'lines',
-              // Invisible markers enable Plotly box-selection for line traces.
-              marker: { opacity: 0, size: 2 },
-              name: 'Acceleration',
-              line: { color: SIGNALS[2].color, width: 1.3 },
-              hovertemplate: 'Acceleration: %{y:.3f} g<br>Time: %{x:.2f} hr<extra></extra>',
-              xaxis: overlay ? 'x' : 'x3',
-              yaxis: 'y3',
-            },
-          ].filter((trace, index) => !overlay || selectedSignals.includes(SIGNALS[index].id))
-            .map((trace, index) => {
-              if (!overlay) return trace
-              const signal = activeSignals[index]
-              if (stageStrip && signal.id === 'sleep') return {
-                // Explicit epoch edges retain each label's full 30-second span.
-                type: 'heatmap', x: [...sleepData.map((d) => d.ElapsedSeconds / 3600), eegEnd / 3600],
-                y: [0], z: [sleepData.map((d) => d.Stage)],
-                customdata: [sleepData.map((d) => STAGES[d.Stage] ?? 'Unknown')],
-                zmin: -0.5, zmax: 5.5, showscale: false,
-                colorscale: STAGE_COLORS.flatMap((color, i) => [[i / 6, color], [(i + 1) / 6, color]]),
-                xaxis: 'x', yaxis: 'y3',
-                hovertemplate: 'Sleep stage: %{customdata}<br>Time: %{x:.2f} hr<extra></extra>',
-              }
-              const axisIndex = plotSignals.findIndex((item) => item.id === signal.id)
-              return { ...trace, xaxis: 'x', yaxis: axisIndex === 0 ? 'y' : `y${axisIndex + 1}` }
-            })}
-          layout={{
-            autosize: true,
-            dragmode: hasDraft ? 'select' : 'zoom',
-            selectdirection: 'h',
-            // Keep a user's zoom while labels change; clicking a list entry
-            // intentionally changes uirevision to focus that interval.
-            uirevision: focus?.revision ?? recordingId,
-            selections: [],
-            shapes: [
-              ...items.filter((item) => item.id !== editingId),
-              ...(hasDraft && draftStart !== '' && draftEnd !== ''
-                && Number(draftEnd) > Number(draftStart)
-                ? [{ start_seconds: draftStart, end_seconds: draftEnd }] : []),
-            ].map((item) => ({
-              type: 'rect', xref: 'x', yref: 'paper',
-              x0: Number(item.start_seconds) / 3600, x1: Number(item.end_seconds) / 3600,
-              y0: 0, y1: 1, fillcolor: item.id === highlightedId ? 'rgba(52,130,126,0.23)' : 'rgba(52,130,126,0.10)',
-              line: { color: 'rgba(52,130,126,0.6)', width: item.id === highlightedId ? 2 : 1 }, layer: 'below',
-            })),
-            showlegend: false,
-            paper_bgcolor: '#ffffff',
-            plot_bgcolor: '#ffffff',
-            font: { family: 'system-ui, sans-serif', size: 12, color: '#475569' },
-
-            // Top panel: expert-reviewed sleep stages.
-            xaxis: {
-              showticklabels: false,
-
-              // "matches" synchronizes this time axis with the
-              // bottom axis when the user zooms or pans.
-              matches: 'x3',
-              domain: [0, 1],
-              anchor: 'y',
-              ...timeRange,
-            },
-
-            yaxis: {
-              title: { text: 'Sleep Stage', standoff: 14 },
-              automargin: true,
-
-              // Convert the numeric stage codes into readable labels.
-              tickvals: hasUnknown ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 4],
-              ticktext: hasUnknown ? ['Wake', 'N1', 'N2', 'N3', 'REM', 'Unknown'] : ['Wake', 'N1', 'N2', 'N3', 'REM'],
-
-              // domain controls where this panel appears vertically
-              // within the overall Plotly figure.
-              domain: overlay ? [0, 1] : [0.72, 1],
-              color: SIGNALS[0].color,
-              gridcolor: '#edf0f4',
-            },
-
-            // Middle panel: heart rate.
-            xaxis2: {
-              showticklabels: false,
-              matches: 'x3',
-              domain: [0, 1],
-              anchor: 'y2',
-              ...timeRange,
-            },
-
-            yaxis2: {
-              title: { text: 'Heart Rate (bpm)', standoff: 14 },
-              automargin: true,
-              domain: [0.36, 0.64],
-              color: SIGNALS[1].color, gridcolor: '#edf0f4',
-            },
-
-            // Bottom panel: accelerometry.
-            // Only this panel displays the shared x-axis labels.
-            xaxis3: {
-              title: { text: 'Hours Since EEG Recording Start', standoff: 16 },
-              automargin: true,
-              matches: 'x',
-              domain: [0, 1],
-              anchor: 'y3',
-              ...timeRange,
-            },
-
-            yaxis3: {
-              title: { text: 'Acceleration Magnitude (g)', standoff: 14 },
-              automargin: true,
-              domain: [0, 0.28],
-              color: SIGNALS[2].color, gridcolor: '#edf0f4',
-            },
-
-            // Leave enough space around the figure for axis labels.
-            margin: {
-              l: 85,
-              r: 24,
-              t: 38,
-              b: 70,
-            },
-            // Overlay separates categorical stages from the wearable scales.
-            ...(overlay ? {
-              xaxis: {
-                title: { text: 'Hours Since EEG Recording Start', standoff: 16 },
-                automargin: true,
-                domain: [0, 1],
-                anchor: 'y',
-              ...timeRange,
-              },
-              xaxis2: { visible: false },
-              xaxis3: { visible: false },
-              // Explicitly hide inactive axes inherited from stacked layout.
-              yaxis2: { visible: false },
-              yaxis3: { visible: false },
-              ...overlayAxes,
-              ...(stageStrip ? { yaxis3: { domain: [0.85, 0.96], anchor: 'x', showticklabels: false, ticks: '', showline: false, showgrid: false, zeroline: false, fixedrange: true } } : {}),
-              margin: { l: 85, r: plotSignals.length > 1 ? 85 : 24, t: 38, b: 70 },
-            } : {}),
-          }}
-          onSelected={onSelected}
-          onDoubleClick={onReset}
-          useResizeHandler
-          className={`signal-chart${overlay ? ' signal-chart-overlay' : ''}`}
-          config={{
-            responsive: true, displaylogo: false,
-            // Plotly's default reset returns to the last mounted focus window.
-            // This reset explicitly restores the complete recording instead.
-            modeBarButtonsToRemove: ['resetScale2d', 'lasso2d'],
-            modeBarButtonsToAdd: [{ name: 'Reset axes',
-              icon: { width: 24, height: 24, path: 'M12 3 2 12h3v9h5v-6h4v6h5v-9h3L12 3z' },
-              click: onReset,
-            }],
-          }}
-        />
+    <Plot
+      // Remount when changing arrangement to clear obsolete axes.
+      key={`${overlay ? 'overlay' : `stacked-${xyz ? 'xyz' : 'vm'}`}-${selectedSensors.join('-')}`}
+      data={traces}
+      layout={{
+        autosize: true,
+        dragmode: hasDraft ? 'select' : 'zoom',
+        selectdirection: 'h',
+        // Keep a user's zoom while labels change; focusing an interval changes uirevision.
+        uirevision: focus?.revision ?? recordingId,
+        selections: [],
+        shapes: [
+          ...items.filter((item) => item.id !== editingId),
+          ...(hasDraft && draftStart !== '' && draftEnd !== '' && Number(draftEnd) > Number(draftStart)
+            ? [{ start_seconds: draftStart, end_seconds: draftEnd }] : []),
+        ].map((item) => ({
+          type: 'rect', xref: 'x', yref: 'paper',
+          x0: Number(item.start_seconds) / 60, x1: Number(item.end_seconds) / 60, y0: 0, y1: 1,
+          // Neutral gray so annotations never read as an activity color.
+          fillcolor: item.id === highlightedId ? 'rgba(29,29,31,0.14)' : 'rgba(29,29,31,0.06)',
+          line: { color: 'rgba(29,29,31,0.35)', width: item.id === highlightedId ? 2 : 1 }, layer: 'below',
+        })),
+        // Overlay needs no legend: the sensor chips above show each line's color.
+        showlegend: showLegend,
+        legend: { orientation: 'h', x: 1, xanchor: 'right', y: 1, yanchor: 'bottom', font: { size: 11 } },
+        paper_bgcolor: '#ffffff',
+        plot_bgcolor: '#ffffff',
+        font: { family: FONT, size: 12, color: '#6E6E73' },
+        xaxis: { title: { text: 'Minutes since recording start', standoff: 16 }, automargin: true,
+          anchor: overlay ? 'y2' : `y${shown.length + 1}`, ...timeRange },
+        ...layoutAxes,
+        annotations: bandLabels,
+        height: area + margin.t + margin.b,
+        margin,
+      }}
+      onSelected={onSelected}
+      onDoubleClick={onReset}
+      useResizeHandler
+      className="signal-chart"
+      style={{ height: area + margin.t + margin.b }}
+      config={{
+        responsive: true, displaylogo: false,
+        modeBarButtonsToRemove: ['resetScale2d', 'lasso2d'],
+        modeBarButtonsToAdd: [{ name: 'Reset axes',
+          icon: { width: 24, height: 24, path: 'M12 3 2 12h3v9h5v-6h4v6h5v-9h3L12 3z' },
+          click: onReset,
+        }],
+      }}
+    />
   )
 })
 
