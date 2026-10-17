@@ -111,12 +111,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .overview-introduction p { margin: 0 0 18px; font-size: 17px; line-height: 1.6; color: var(--text); }
 .overview-introduction .overview-source { font-size: 13px; color: var(--text-secondary); }
 .overview-help-heading { font-size: 24px; font-weight: 600; letter-spacing: -.02em; margin: 32px 0 14px; }
-.tab-guide { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; max-width: 850px; }
-.tab-guide button { text-align: left; padding: 18px 20px; border: 0; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); font: inherit; color: var(--text); cursor: pointer; }
-.tab-guide button:hover { box-shadow: 0 2px 4px rgb(0 0 0 / 6%), 0 10px 28px rgb(0 0 0 / 8%); }
-.tab-guide h3 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }
-.tab-guide h3::after { content: ' ›'; color: var(--text-secondary); }
-.tab-guide p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+.tab-list { max-width: 760px; }
 .help-steps { max-width: 850px; padding: 28px 32px 28px 52px; }
 .help-steps li { padding-left: 8px; margin-bottom: 20px; }
 .help-steps li:last-child { margin-bottom: 0; }
@@ -125,12 +120,6 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .help-steps p { margin: 0; color: var(--text-secondary); font-size: 15px; line-height: 1.6; }
 
 /* HW2: model tab. */
-.headline-lead { margin: 0 0 14px; font-size: 19px; line-height: 1.45; color: var(--text); max-width: 760px; }
-.stat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-.stat-tile { display: grid; gap: 2px; padding: 16px 20px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); }
-.stat-tile span { font-size: 13px; color: var(--text-secondary); }
-.stat-tile strong { font-size: 34px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-.stat-tile small { font-size: 13px; color: var(--text-secondary); }
 .spec-list { margin: 0; display: grid; }
 .spec-list div { display: grid; grid-template-columns: 130px 1fr; gap: 16px; padding: 10px 0; border-top: 1px solid var(--hairline); }
 .spec-list div:first-child { border-top: 0; padding-top: 0; }
@@ -145,7 +134,6 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .metrics-table th, .metrics-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
 .metrics-table th { color: var(--text-secondary); font-size: 12px; font-weight: 600; }
 .metrics-table tbody tr:last-child td { border-bottom: 0; }
-.metrics-table .total-row td { font-weight: 600; }
 .link-button { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer; }
 .link-button:hover { text-decoration: underline; }
 .model-plots { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
@@ -167,7 +155,6 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .train-stats strong { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .train-stats .train-stats-run strong { font-size: 14px; font-weight: 500; padding-top: 3px; }
 .train-subheading { margin: 20px 0 4px; font-size: 15px; font-weight: 600; }
-.model-badge { font-size: 12px; font-weight: 600; color: var(--accent); background: rgb(0 113 227 / 12%); border-radius: 980px; padding: 3px 10px; }
 @media (max-width: 860px) { .train-layout { grid-template-columns: 1fr; } }
 
 @media (max-width: 760px) {

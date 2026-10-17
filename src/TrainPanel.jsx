@@ -8,7 +8,7 @@ const DEFAULTS = { hidden_layers: 2, units: 64, activation: 'relu', learning_rat
 const CHOICES = {
   hidden_layers: [[0, '0 (logistic regression)'], [1, '1'], [2, '2'], [3, '3']],
   units: [16, 32, 64, 128, 256].map((v) => [v, String(v)]),
-  activation: [['relu', 'ReLU'], ['tanh', 'tanh'], ['sigmoid', 'Sigmoid']],
+  activation: [['relu', 'ReLU'], ['tanh', 'tanh'], ['sigmoid', 'sigmoid']],
   learning_rate: [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03].map((v) => [v, String(v)]),
   dropout: [0, 0.1, 0.2, 0.3, 0.5].map((v) => [v, String(v)]),
 }
@@ -69,9 +69,8 @@ export default function TrainPanel({ active }) {
   return (
     <>
       <div className="overview-introduction">
-        <p>Train your own version of the network and watch it learn. Training uses the same data, split, weighted
-          loss, Adam optimizer and early stopping as the saved model (it stops if validation macro-F1 has not improved
-          for 15 epochs). Test scores appear only when a run ends.</p>
+        <p>Retrain the network with different settings. Data, split, loss, optimizer, and early stopping (patience
+          15 epochs) are the same as for the saved model. Test scores are shown after training ends.</p>
       </div>
 
       <div className="train-layout">
@@ -94,14 +93,14 @@ export default function TrainPanel({ active }) {
           <div className="annotation-actions">
             {busy ? <button onClick={() => act('/api/train/stop')}>Stop</button>
               : <button className="primary-button" onClick={() => act('/api/train', settings)}>Train</button>}
-            <button onClick={() => setSettings(DEFAULTS)} disabled={busy}>Saved model’s settings</button>
+            <button onClick={() => setSettings(DEFAULTS)} disabled={busy}>Reset settings</button>
           </div>
           {error && <p className="train-error" role="alert">{error}</p>}
         </section>
 
         <section className="chart-panel model-card train-monitor" aria-label="Training monitor">
           <h2>Training monitor</h2>
-          {!state || state.status === 'idle' ? <p className="train-status" role="status">Choose settings and press Train.</p>
+          {!state || state.status === 'idle' ? <p className="train-status" role="status">No run yet.</p>
             : state.status === 'loading' ? <p className="train-status" role="status">Loading training data…</p>
             : state.status === 'error' ? <p className="train-status train-error" role="alert">Training failed: {state.error}</p>
             : (
@@ -125,10 +124,10 @@ export default function TrainPanel({ active }) {
 
       {finished && (
         <section className="chart-panel model-card" aria-label="Results of this run">
-          <h2>Results of this run</h2>
+          <h2>Results</h2>
           <p className="model-note">
-            Kept epoch {state.best_epoch} of {state.epochs_run} (best validation macro-F1)
-            {state.epochs_run < state.settings.epochs && state.status === 'done' ? ', stopped early: no improvement for 15 epochs' : ''}.
+            Epoch kept: {state.best_epoch} of {state.epochs_run} (best validation macro-F1)
+            {state.epochs_run < state.settings.epochs && state.status === 'done' ? '; stopped early' : ''}.
           </p>
           <div className="table-scroll">
             <table className="metrics-table">
@@ -136,11 +135,11 @@ export default function TrainPanel({ active }) {
                 <th>Test acc.</th><th>Test macro-F1</th></tr></thead>
               <tbody>
                 {saved && <ScoreRow name="Saved model (2 × 64, ReLU)" parameters={saved.config.parameters} scores={saved.scores} />}
-                <ScoreRow name={`This run (${describe(state.settings)})`} parameters={state.parameters} scores={state.scores} />
+                <ScoreRow name={`New model (${describe(state.settings)})`} parameters={state.parameters} scores={state.scores} />
               </tbody>
             </table>
           </div>
-          <h3 className="train-subheading">Test confusion matrix (this run)</h3>
+          <h3 className="train-subheading">Test confusion matrix (new model)</h3>
           <ConfusionMatrix confusion={state.scores.test.confusion} classes={['Walking', 'Descending stairs', 'Ascending stairs', 'Driving']} />
         </section>
       )}
@@ -149,14 +148,14 @@ export default function TrainPanel({ active }) {
         <h2>Model used by Run model</h2>
         <p className="model-note">
           {state?.active_model === 'experiment'
-            ? <>Run model in the Data Viewer is using <strong>your trained run ({describe(state.active_settings)})</strong>.</>
-            : <>Run model in the Data Viewer is using the <strong>saved model</strong> (2 × 64, ReLU).</>}
+            ? <>New model ({describe(state.active_settings)})</>
+            : <>Saved model (2 × 64, ReLU)</>}
         </p>
         <div className="annotation-actions">
           <button className="primary-button" disabled={!finished || busy} onClick={() => act('/api/train/use')}>
-            Use this run for Run model</button>
+            Use new model</button>
           <button disabled={state?.active_model !== 'experiment'} onClick={() => act('/api/train/reset')}>
-            Reset to saved model</button>
+            Use saved model</button>
         </div>
       </section>
     </>

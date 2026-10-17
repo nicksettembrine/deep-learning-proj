@@ -29,8 +29,6 @@ export default function ModelPanel({ active, onOpenParticipant }) {
   if (!report) return <p className="viewer-message" role="status">Loading model report…</p>
 
   const { mlp, baseline, classes, split, n_windows: n, per_person: people } = report
-  const pooled = people.reduce((sum, p) => ({ correct: sum.correct + p.correct, scored: sum.scored + p.scored_windows }),
-    { correct: 0, scored: 0 })
   const cfg = mlp.config
   const models = [
     ['MLP', `${cfg.n_inputs.toLocaleString()} → ${cfg.hidden.join(' → ')} → ${cfg.n_classes}`, mlp],
@@ -38,58 +36,41 @@ export default function ModelPanel({ active, onOpenParticipant }) {
   ]
   return (
     <>
-      {/* The headline result first: test scores on five people the network never saw. */}
-      <section className="headline" aria-label="Main result">
-        <p className="headline-lead">On {split.test.length} people it never saw, the neural network makes fewer mistakes
-          than the shallow baseline.</p>
-        <div className="stat-tiles">
-          <div className="stat-tile"><span>Test error</span>
-            <strong>{pct(1 - mlp.scores.test.accuracy)}</strong>
-            <small>Baseline: {pct(1 - baseline.scores.test.accuracy)}</small></div>
-          <div className="stat-tile"><span>Test macro-F1</span>
-            <strong>{mlp.scores.test.macro_f1.toFixed(2)}</strong>
-            <small>Baseline: {baseline.scores.test.macro_f1.toFixed(2)}</small></div>
-          <div className="stat-tile"><span>Test windows</span>
-            <strong>{n.test.toLocaleString()}</strong>
-            <small>4 seconds each, {split.test.length} people</small></div>
-        </div>
-      </section>
-
-      <section className="chart-panel model-card" aria-label="How the model works">
-        <h2>How the model works</h2>
-        <dl className="spec-list">
-          <div><dt>Task</dt><dd>Label each 4-second window as walking, descending stairs, ascending stairs, or driving.</dd></div>
-          <div><dt>Input</dt><dd>The raw left-wrist window: 400 samples × 3 axes = 1,200 numbers, each axis scaled with the training set’s mean and standard deviation.</dd></div>
-          <div><dt>Network</dt><dd>{models[0][1]} with ReLU and dropout {cfg.dropout} ({cfg.parameters.toLocaleString()} parameters).</dd></div>
-          <div><dt>Training</dt><dd>Adam (learning rate {cfg.lr}, batches of {cfg.batch}) on class-weighted cross-entropy, so rare stair windows count as much as common driving windows.</dd></div>
-          <div><dt>Weights kept</dt><dd>Epoch {cfg.best_epoch}, the one with the best validation macro-F1 (early stopping).</dd></div>
-          <div><dt>Baseline</dt><dd>Logistic regression ({models[1][1]}): the same network with no hidden layers, trained the same way.</dd></div>
-          <div><dt>Split</dt><dd>By person: {split.train.length} training, {split.val.length} validation, {split.test.length} test ({n.train.toLocaleString()} / {n.val.toLocaleString()} / {n.test.toLocaleString()} windows).</dd></div>
-        </dl>
-      </section>
-
-      <section className="chart-panel model-card" aria-label="Model performance">
-        <h2>Performance</h2>
+      <section className="chart-panel model-card" aria-label="Results">
+        <h2>Results</h2>
         <div className="table-scroll">
           <table className="metrics-table">
             <thead><tr><th>Model</th><th>Layers</th><th>Train acc.</th><th>Val acc.</th>
               <th>Test acc.</th><th>Test error</th><th>Test macro-F1</th></tr></thead>
             <tbody>{models.map(([name, layers, m]) => (
               <tr key={name}><td>{name}</td><td>{layers}</td><td>{pct(m.scores.train.accuracy)}</td>
-                <td>{pct(m.scores.val.accuracy)}</td><td><strong>{pct(m.scores.test.accuracy)}</strong></td>
-                <td>{pct(1 - m.scores.test.accuracy)}</td><td>{m.scores.test.macro_f1.toFixed(3)}</td></tr>
+                <td>{pct(m.scores.val.accuracy)}</td><td>{pct(m.scores.test.accuracy)}</td>
+                <td><strong>{pct(1 - m.scores.test.accuracy)}</strong></td><td>{m.scores.test.macro_f1.toFixed(3)}</td></tr>
             ))}</tbody>
           </table>
         </div>
-        <p className="model-note">Macro-F1 averages the F1 score of the four activities equally, so the short
-          stair bouts count as much as driving.</p>
+        <p className="model-note">Test set: {split.test.length} participants not used in training ({n.test.toLocaleString()} windows).
+          Macro-F1 is the mean F1 score across the four activities.</p>
+      </section>
+
+      <section className="chart-panel model-card" aria-label="Model details">
+        <h2>Model details</h2>
+        <dl className="spec-list">
+          <div><dt>Task</dt><dd>Classify 4-second windows as walking, descending stairs, ascending stairs, or driving.</dd></div>
+          <div><dt>Input</dt><dd>Raw left-wrist signal, 400 samples × 3 axes (1,200 values), standardized per axis using training data.</dd></div>
+          <div><dt>Network</dt><dd>{models[0][1]}, ReLU, dropout {cfg.dropout}; {cfg.parameters.toLocaleString()} parameters.</dd></div>
+          <div><dt>Training</dt><dd>Adam, learning rate {cfg.lr}, batch size {cfg.batch}; cross-entropy weighted by inverse class frequency.</dd></div>
+          <div><dt>Early stopping</dt><dd>Best validation macro-F1 (epoch {cfg.best_epoch}).</dd></div>
+          <div><dt>Baseline</dt><dd>Logistic regression ({models[1][1]}), same training.</dd></div>
+          <div><dt>Split</dt><dd>By participant: {split.train.length} / {split.val.length} / {split.test.length} (train / validation / test), {n.train.toLocaleString()} / {n.val.toLocaleString()} / {n.test.toLocaleString()} windows.</dd></div>
+        </dl>
       </section>
 
       <section className="chart-panel model-card" aria-label="Test participants">
         <h2>Test participants</h2>
         <div className="table-scroll">
           <table className="metrics-table">
-            <thead><tr><th>Participant</th><th>Labeled 4-s windows</th><th>MLP matches true label</th></tr></thead>
+            <thead><tr><th>Participant</th><th>Windows</th><th>Agreement</th></tr></thead>
             <tbody>
               {people.map((p) => (
                 <tr key={p.id}>
@@ -98,14 +79,10 @@ export default function ModelPanel({ active, onOpenParticipant }) {
                   <td>{p.scored_windows.toLocaleString()}</td><td>{pct(p.accuracy)}</td>
                 </tr>
               ))}
-              <tr className="total-row"><td>All {people.length} combined</td><td>{pooled.scored.toLocaleString()}</td>
-                <td>{pct(pooled.correct / pooled.scored)}</td></tr>
             </tbody>
           </table>
         </div>
-        <p className="model-note">These are the people shown in the Data Viewer; none were used in training. Scores use
-          back-to-back windows, exactly as Run model does, so the combined figure differs slightly from the test
-          accuracy above, which uses 50%-overlapping windows. Click a participant to open them in the Data Viewer.</p>
+        <p className="model-note">Non-overlapping windows, as in the Data Viewer.</p>
       </section>
 
       <section className="chart-panel model-card" aria-label="Loss versus epoch">
@@ -113,17 +90,13 @@ export default function ModelPanel({ active, onOpenParticipant }) {
         <div className="model-plots">
           {models.map(([name, layers, m]) => <LossCurve key={name} title={`${name} (${layers})`} model={m} />)}
         </div>
-        <p className="model-note">The dashed line marks the epoch whose weights are kept. MLP validation loss rises
-          while its training loss keeps falling: the network fits the training participants more closely
-          than new people (overfitting).</p>
+        <p className="model-note">Dashed line: epoch kept.</p>
       </section>
 
       <section className="chart-panel model-card" aria-label="Test confusion matrix">
         <h2>Test confusion matrix (MLP)</h2>
         <ConfusionMatrix confusion={mlp.scores.test.confusion} classes={classes} />
-        <p className="model-note">Each row shows how the windows of one true activity were classified (row
-          percentages). Driving is almost always right; walking and stairs are often confused, because arm
-          swing looks similar on level ground and on stairs.</p>
+        <p className="model-note">Rows: true activity. Columns: predicted activity. Percentages are per row.</p>
       </section>
     </>
   )

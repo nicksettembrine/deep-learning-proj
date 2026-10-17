@@ -52,7 +52,7 @@ async function readJson(path, signal) {
   // Development servers may return the app's HTML for a missing file with a
   // successful HTTP status. Explain that case instead of exposing a JSON error.
   if (!response.headers.get('content-type')?.includes('application/json')) {
-    throw new Error('The recording file is missing or unavailable. Please retry.')
+    throw new Error('Recording file not found.')
   }
   return response.json()
 }
@@ -131,43 +131,40 @@ function App() {
       <main>
       <section id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" hidden={activeTab !== 'overview'} tabIndex={0}>
         <header className="viewer-header">
-          <h1>Project overview</h1>
+          <h1>Overview</h1>
         </header>
         <div className="overview-introduction">
-          <p>This app shows raw accelerometry from 32 healthy adults who wore four sensors (left wrist, left hip, and both ankles) while they walked outdoors, climbed stairs, and drove. Every sample is labeled with the activity. A small neural network reads 4-second windows of the <strong>left-wrist</strong> signal, like a smartwatch, and predicts which of four activities is happening: walking, going down stairs, going up stairs, or driving.</p>
-          <p className="overview-source">Data source: <a href="https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/">Labeled raw accelerometry data captured during walking, stair climbing and driving (PhysioNet)</a></p>
+          <p>Raw accelerometry from 32 healthy adults wearing four sensors (left wrist, left hip, left ankle, right ankle) during outdoor walking, stair climbing, and driving. Each sample is labeled with the activity. A multilayer perceptron classifies 4-second windows of the left-wrist signal as walking, descending stairs, ascending stairs, or driving.</p>
+          <p className="overview-source">Data: <a href="https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/">Karas et al. (2021), PhysioNet</a></p>
         </div>
 
-        <h2 className="overview-help-heading">What each tab does</h2>
-        <div className="tab-guide">
-          <button onClick={() => setActiveTab('viewer')}><h3>Data Viewer</h3>
-            <p>Browse one participant’s signals and activity labels, run the model on them, and add annotations.</p></button>
+        <h2 className="overview-help-heading">Tabs</h2>
+        <dl className="spec-list tab-list">
+          <div><dt>Data Viewer</dt><dd>Signals, activity labels, model predictions, and annotations for each test participant.</dd></div>
           {SHOW_MODEL && <>
-            <button onClick={() => setActiveTab('model')}><h3>Model</h3>
-              <p>How the network was built and trained, and how well it does on five people it never saw.</p></button>
-            <button onClick={() => setActiveTab('train')}><h3>Train</h3>
-              <p>Change the network’s settings, watch it train live, and compare it with the saved model.</p></button>
+            <div><dt>Model</dt><dd>Architecture, training, and test results.</dd></div>
+            <div><dt>Train</dt><dd>Retrain the network with different settings and compare it with the saved model.</dd></div>
           </>}
-        </div>
+        </dl>
 
-        <h2 className="overview-help-heading">How to use the Data Viewer</h2>
+        <h2 className="overview-help-heading">Using the Data Viewer</h2>
         <ol className="help-steps">
-          <li><h3>Choose a participant</h3><p>Use the dropdown or the ‹ › arrows. The five participants shown were held out from training. Each session lasts about 48–58 minutes.</p></li>
-          <li><h3>Choose sensors and a view</h3><p>Tick the sensors to show; the left wrist (the model’s input) is shown by default. Stacked gives each sensor its own panel, and Overlay draws them on one scale. Magnitude shows overall movement; x / y / z shows the three axes separately.</p></li>
-          {SHOW_MODEL && <li><h3>Run the model</h3><p>Click Run model. A Predicted band appears under the True activity labels; hover over it to see the model’s probabilities. The score next to the button says how often the prediction matches the true label.</p></li>}
-          <li><h3>Zoom in</h3><p>Drag across the plot to zoom in. Hover for values. Double-click to see the whole session again.</p></li>
-          <li><h3>Annotate</h3><p>Click Add annotation, then drag over the plot or type start and end times in seconds. Add a label and an optional note, then save. Click a saved annotation’s label to return to that interval.</p></li>
+          <li><h3>Participant</h3><p>Select a participant from the list or with the arrows. All five were held out from training.</p></li>
+          <li><h3>Sensors and view</h3><p>Select the sensors to plot (left wrist by default). Stacked plots each sensor in its own panel; Overlay plots them on one axis. Magnitude or x/y/z.</p></li>
+          {SHOW_MODEL && <li><h3>Model predictions</h3><p>Run model adds a Predicted band below the true labels. Hover over it for class probabilities.</p></li>}
+          <li><h3>Zoom</h3><p>Drag across the plot to zoom. Double-click to reset.</p></li>
+          <li><h3>Annotations</h3><p>Click Add annotation, then drag over the plot or enter start and end times. Click a saved annotation to zoom to it.</p></li>
         </ol>
       </section>
       {SHOW_MODEL && (
         <section id="panel-model" role="tabpanel" aria-labelledby="tab-model" hidden={activeTab !== 'model'} tabIndex={0}>
-          <header className="viewer-header"><h1>Activity classifier</h1></header>
+          <header className="viewer-header"><h1>Model</h1></header>
           <ModelPanel active={activeTab === 'model'} onOpenParticipant={openParticipant} />
         </section>
       )}
       {SHOW_MODEL && (
         <section id="panel-train" role="tabpanel" aria-labelledby="tab-train" hidden={activeTab !== 'train'} tabIndex={0}>
-          <header className="viewer-header"><h1>Train the network</h1></header>
+          <header className="viewer-header"><h1>Train</h1></header>
           <TrainPanel active={activeTab === 'train'} />
         </section>
       )}
@@ -339,13 +336,13 @@ function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs }) {
         {SHOW_MODEL && (
           <div className="model-strip">
             <div>
-              <strong>Wrist model</strong>
-              <span>Predicts the activity of each 4-second window from the left-wrist sensor only.</span>
+              <strong>Activity model</strong>
+              <span>Left-wrist MLP, 4-second windows</span>
             </div>
             <div className="annotation-actions">
-              {prediction?.model === 'experiment' && <span className="model-badge">Your trained run</span>}
+              {prediction?.model === 'experiment' && <span>New model (Train tab)</span>}
               {prediction && prediction.accuracy !== null && (
-                <span className="model-result">Matches the true label in <strong>{(prediction.accuracy * 100).toFixed(1)}%</strong> of {prediction.scored_windows} labeled windows</span>
+                <span className="model-result">Agreement with true labels: <strong>{(prediction.accuracy * 100).toFixed(1)}%</strong> ({prediction.scored_windows} windows)</span>
               )}
               {predictError && <span role="alert">{predictError}</span>}
               <button className="primary-button" onClick={runModel} disabled={predicting || !data}>

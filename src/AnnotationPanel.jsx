@@ -19,7 +19,7 @@ export function AnnotationForm({ annotations: a }) {
   return (
     <form ref={formRef} className="annotation-form" onSubmit={a.save}>
       <h3>{a.editingId ? 'Edit annotation' : 'New annotation'}</h3>
-      <p>Drag across a plot to mark an interval, or enter times below. Times are seconds since recording start.</p>
+      <p>Drag across the plot or enter times in seconds from the start of the recording.</p>
       <fieldset disabled={a.saving}>
         <div className="annotation-fields">
           <label>Start (seconds)<input type="number" step="any" required value={a.draft.start_seconds} onChange={(e) => update('start_seconds', e.target.value)} /></label>
@@ -39,8 +39,8 @@ export default function AnnotationPanel({ annotations: a, onFocus, highlightedId
     <section className="annotation-panel" aria-label="Saved annotations">
       <div className="annotation-panel-heading"><h2>Annotations <span>({a.items.length})</span></h2></div>
       {a.loading ? <p role="status">Loading annotations…</p> : a.error ? (
-        <div role="alert"><p>{a.error}</p><button onClick={a.retry}>Retry annotations</button></div>
-      ) : !a.items.length && <p>No annotations yet. Use Add annotation above the plot to mark an interval.</p>}
+        <div role="alert"><p>{a.error}</p><button onClick={a.retry}>Retry</button></div>
+      ) : !a.items.length && <p>No annotations yet.</p>}
       {!a.draft && a.message && <p role="status">{a.message}</p>}
       <ul className="annotation-list">
         {a.items.map((item) => <li key={item.id} className={highlightedId === item.id ? 'highlighted-annotation' : ''} onMouseEnter={() => onHighlight(item.id)} onMouseLeave={() => onHighlight(null)} onFocus={() => onHighlight(item.id)} onBlur={() => onHighlight(null)}>
