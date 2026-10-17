@@ -100,14 +100,7 @@ function App() {
     <>
       <header className="app-bar">
         <div className="app-bar-inner">
-          <div className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 32 32" fill="none">
-                <path d="M2 18h5l3-8 5 14 4-10 3 4h8" />
-              </svg>
-            </span>
-            <span>Accelerometry Activity Viewer</span>
-          </div>
+          <div className="brand">Accelerometry Activity Viewer</div>
           <nav className="app-tabs" role="tablist" aria-label="Project sections">
             {tabs.map((tab, index) => (
               <button key={tab.id} id={`tab-${tab.id}`} role="tab"

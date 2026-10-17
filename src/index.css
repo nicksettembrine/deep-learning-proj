@@ -6,9 +6,14 @@
   --text-secondary: #6e6e73;
   --hairline: rgb(0 0 0 / 8%);
   --fill: rgb(118 118 128 / 12%);
-  --accent: #0071e3;
+  --accent: #0071e3;         /* buttons */
+  --link: #0066cc;           /* text links */
   --radius: 18px;
-  --shadow: 0 1px 2px rgb(0 0 0 / 4%), 0 6px 20px rgb(0 0 0 / 4%);
+  /* Card shadow and hover, measured from apple.com/store. */
+  --shadow: 2px 4px 12px rgb(0 0 0 / 8%);
+  --shadow-hover: 2px 4px 16px rgb(0 0 0 / 16%);
+  --ease: cubic-bezier(0, 0, .5, 1);
+  --gap: 24px;               /* space between cards */
 
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   color: var(--text);

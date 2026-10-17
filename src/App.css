@@ -3,7 +3,7 @@
    Shared tokens (--page, --text, --accent, ...) live in index.css. */
 [hidden] { display: none !important; }
 
-/* Header: sticky, frosted glass, hairline border. */
+/* Top bar: sticky, frosted glass, hairline border; app name left, tab links right. */
 .app-bar {
   position: sticky; top: 0; z-index: 10;
   background: rgb(255 255 255 / 72%);
@@ -11,19 +11,16 @@
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--hairline);
 }
-.app-bar-inner { max-width: 1280px; margin: auto; padding: 10px 32px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-.brand { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
-.brand-mark { width: 30px; height: 30px; display: grid; place-items: center; background: var(--text); border-radius: 8px; }
-.brand-mark svg { width: 22px; stroke: white; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-
-/* Section tabs styled as one segmented control. */
-.app-tabs { display: flex; padding: 2px; background: var(--fill); border-radius: 9px; }
-.app-tabs button { background: transparent; border: 0; border-radius: 7px; padding: 6px 16px; color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
-.app-tabs button[aria-selected="true"] { background: var(--card); font-weight: 600; box-shadow: 0 1px 3px rgb(0 0 0 / 12%); }
+.app-bar-inner { max-width: 1280px; min-height: 52px; margin: auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.brand { color: var(--text); font-size: 21px; font-weight: 600; letter-spacing: .011em; }
+.app-tabs { display: flex; gap: 24px; }
+.app-tabs button { padding: 4px 0; border: 0; background: none; color: var(--text-secondary); font: inherit; font-size: 13px; letter-spacing: -.01em; cursor: pointer; transition: color .2s var(--ease); }
+.app-tabs button:hover { color: var(--text); }
+.app-tabs button[aria-selected="true"] { color: var(--text); }
 
 main { width: min(1280px, 100%); margin: auto; padding: 28px 32px 40px; }
-.viewer-header { margin-bottom: 20px; }
-.viewer-header h1 { margin: 0; color: var(--text); font-size: clamp(28px, 3vw, 40px); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
+.viewer-header { margin-bottom: var(--gap); }
+.viewer-header h1 { margin: 0; color: var(--text); font-size: clamp(32px, 4vw, 48px); font-weight: 600; letter-spacing: -.003em; line-height: 1.08; }
 
 /* Cards. */
 .chart-panel, .annotation-panel, .viewer-message, .help-steps {
@@ -31,7 +28,7 @@ main { width: min(1280px, 100%); margin: auto; padding: 28px 32px 40px; }
 }
 
 .chart-panel { min-width: 0; overflow: hidden; }
-.chart-header { padding: 16px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 18px; }
+.chart-header { padding: 18px 28px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 18px; }
 .recording-duration { color: var(--text-secondary); font-size: 13px; font-variant-numeric: tabular-nums; margin-left: 8px; }
 
 /* Participant picker: previous / dropdown / next. */
@@ -43,18 +40,18 @@ main { width: min(1280px, 100%); margin: auto; padding: 28px 32px 40px; }
 .header-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* Model strip: one row for the HW2 network, separate from navigation. */
-.model-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 12px 24px; background: #fafafc; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+.model-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 12px 28px; background: #fafafc; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
 .model-strip strong { font-size: 14px; font-weight: 600; margin-right: 10px; }
 .model-strip > div > span { font-size: 13px; color: var(--text-secondary); }
 .model-strip .model-result { font-size: 13px; color: var(--text); }
-.chart-guide { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 24px; border-top: 1px solid var(--hairline); }
+.chart-guide { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 28px; border-top: 1px solid var(--hairline); }
 .signal-chart { width: 100%; }
-.stage-legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 14px 24px 0; font-size: 12px; color: var(--text-secondary); }
+.stage-legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 14px 28px 0; font-size: 12px; color: var(--text-secondary); }
 .stage-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .stage-legend i { width: 10px; height: 10px; border-radius: 3px; }
 .viewer-message { padding: 28px; font-size: 14px; }
-.source-note { color: var(--text-secondary); font-size: 12px; line-height: 1.7; margin: 16px 4px 0; }
-.source-note a, .overview-source a { color: var(--accent); text-decoration: none; }
+.source-note { color: var(--text-secondary); font-size: 12px; line-height: 1.7; margin: var(--gap) 4px 0; }
+.source-note a, .overview-source a { color: var(--link); text-decoration: none; }
 .source-note a:hover, .overview-source a:hover { text-decoration: underline; }
 
 /* Segmented controls (Stacked/Overlay, Magnitude/x y z). */
@@ -85,7 +82,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 }
 
 /* Annotation form and saved list. */
-.annotation-form { padding: 20px 24px; border-bottom: 1px solid var(--hairline); background: #fafafc; }
+.annotation-form { padding: 20px 28px; border-bottom: 1px solid var(--hairline); background: #fafafc; }
 .annotation-form h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }
 .annotation-form p, .annotation-panel p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
 .annotation-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
@@ -93,56 +90,55 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .annotation-fields label { display: grid; gap: 6px; font-size: 12px; color: var(--text-secondary); }
 .annotation-fields input, .annotation-fields textarea { width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid rgb(0 0 0 / 12%); border-radius: 10px; font: inherit; font-size: 14px; background: white; color: var(--text); }
 .annotation-note { grid-column: 1 / -1; }
-.annotation-panel { margin-top: 16px; padding: 20px 24px; }
+.annotation-panel { margin-top: var(--gap); padding: 28px; }
 .annotation-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.annotation-panel h2 { font-size: 17px; font-weight: 600; margin: 0; }
+.annotation-panel h2 { font-size: 24px; font-weight: 600; letter-spacing: .009em; margin: 0 0 4px; }
 .annotation-panel h2 span { font-weight: 400; color: var(--text-secondary); }
 .annotation-list { padding: 0; margin: 0; list-style: none; }
 .annotation-list li { display: flex; justify-content: space-between; gap: 18px; padding: 14px 0; border-top: 1px solid var(--hairline); }
 .annotation-list li.highlighted-annotation { background: #f5f5f7; }
 .annotation-details { min-width: 0; overflow-wrap: anywhere; }
 .annotation-details span { display: block; font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-variant-numeric: tabular-nums; }
-.annotation-panel .annotation-jump { font-weight: 600; padding: 0; background: none; color: var(--accent); text-align: left; border-radius: 0; }
+.annotation-panel .annotation-jump { font-weight: 600; padding: 0; background: none; color: var(--link); text-align: left; border-radius: 0; }
 .annotation-panel .annotation-jump:hover { background: none; text-decoration: underline; }
 .annotation-details p { white-space: pre-wrap; margin-bottom: 0; }
 
 /* Overview tab. */
 .overview-introduction { max-width: 760px; }
-.overview-introduction p { margin: 0 0 18px; font-size: 17px; line-height: 1.6; color: var(--text); }
+.overview-introduction p { margin: 0 0 18px; font-size: 17px; line-height: 1.47; letter-spacing: -.022em; color: var(--text); }
 .overview-introduction .overview-source { font-size: 13px; color: var(--text-secondary); }
-.overview-help-heading { font-size: 24px; font-weight: 600; letter-spacing: -.02em; margin: 32px 0 14px; }
-.tab-list { max-width: 850px; padding: 20px 32px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); }
+.overview-help-heading { font-size: 28px; font-weight: 600; letter-spacing: .007em; margin: 40px 0 16px; }
+.tab-list { max-width: 850px; padding: 28px 32px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); }
 .tab-list div:last-child { padding-bottom: 0; }
 .help-steps { max-width: 850px; padding: 28px 32px 28px 52px; }
 .help-steps li { padding-left: 8px; margin-bottom: 20px; }
 .help-steps li:last-child { margin-bottom: 0; }
 .help-steps li::marker { color: var(--text-secondary); font-weight: 600; }
 .help-steps h3 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
-.help-steps p { margin: 0; color: var(--text-secondary); font-size: 15px; line-height: 1.6; }
+.help-steps p { margin: 0; color: var(--text-secondary); font-size: 17px; line-height: 1.47; letter-spacing: -.022em; }
 
 /* HW2: model tab. */
 .spec-list { margin: 0; display: grid; }
-.spec-list div { display: grid; grid-template-columns: 130px 1fr; gap: 16px; padding: 10px 0; border-top: 1px solid var(--hairline); }
+.spec-list div { display: grid; grid-template-columns: 150px 1fr; gap: 16px; padding: 12px 0; border-top: 1px solid var(--hairline); }
 .spec-list div:first-child { border-top: 0; padding-top: 0; }
-.spec-list dt { font-size: 14px; font-weight: 600; }
-.spec-list dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
-@media (max-width: 600px) { .spec-list div { grid-template-columns: 1fr; gap: 2px; } }
-.model-card { padding: 20px 24px; margin-top: 16px; }
-.model-card h2 { margin: 0 0 12px; font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+.spec-list dt { font-size: 17px; font-weight: 600; letter-spacing: -.022em; }
+.spec-list dd { margin: 0; font-size: 17px; line-height: 1.47; letter-spacing: -.022em; color: var(--text-secondary); }
+.model-card { padding: 28px; margin-top: var(--gap); }
+.model-card h2 { margin: 0 0 16px; font-size: 24px; font-weight: 600; letter-spacing: .009em; }
 .model-note { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
 .table-scroll { overflow-x: auto; }
 .metrics-table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
 .metrics-table th, .metrics-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
 .metrics-table th { color: var(--text-secondary); font-size: 12px; font-weight: 600; }
 .metrics-table tbody tr:last-child td { border-bottom: 0; }
-.link-button { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer; }
+.link-button { padding: 0; border: 0; background: none; color: var(--link); font: inherit; cursor: pointer; }
 .link-button:hover { text-decoration: underline; }
-.model-plots { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.model-plots { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--gap); }
 .model-plot { width: 100%; height: 340px; }
 .confusion-plot { max-width: 720px; height: 380px; }
 
 /* HW2 optional challenges: Train tab. */
-.train-layout { display: grid; grid-template-columns: minmax(240px, 300px) 1fr; gap: 16px; align-items: start; }
+.train-layout { display: grid; grid-template-columns: minmax(240px, 300px) 1fr; gap: var(--gap); align-items: start; }
 .train-layout .model-card { margin-top: 0; }
 .train-settings label { display: grid; gap: 5px; margin-bottom: 12px; font-size: 12px; color: var(--text-secondary); }
 .train-settings select, .train-settings input { padding: 7px 10px; border: 0; border-radius: 10px; background: var(--fill); color: var(--text); font: inherit; font-size: 14px; }
@@ -155,13 +151,16 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .train-stats span { font-size: 12px; color: var(--text-secondary); }
 .train-stats strong { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .train-stats .train-stats-run strong { font-size: 14px; font-weight: 500; padding-top: 3px; }
-.train-subheading { margin: 20px 0 4px; font-size: 15px; font-weight: 600; }
+.train-subheading { margin: 28px 0 4px; font-size: 17px; font-weight: 600; }
 @media (max-width: 860px) { .train-layout { grid-template-columns: 1fr; } }
 
 @media (max-width: 760px) {
   .app-bar-inner { padding: 10px 16px; flex-wrap: wrap; }
+  .app-tabs { gap: 18px; }
   main { padding: 20px 16px 32px; }
   .chart-header { padding: 14px 16px; }
+  .model-card, .annotation-panel { padding: 20px; }
+  .spec-list div { grid-template-columns: 1fr; gap: 2px; }
   .chart-guide, .model-strip { padding: 10px 16px; }
   .stage-legend { margin-inline: 16px; }
   .annotation-fields { grid-template-columns: 1fr 1fr; }
@@ -169,14 +168,14 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
   .annotation-list li { flex-direction: column; }
   .help-steps { padding: 22px 22px 22px 40px; }
 }
-/* Cards on the Overview, Model and Train tabs lift slightly on hover.
+/* Cards on the Overview, Model and Train tabs grow slightly on hover (Apple Store values).
    The Data Viewer card stays still so it doesn't move while you drag to zoom. */
 #panel-overview .help-steps, #panel-overview .tab-list, #panel-model .model-card, #panel-train .model-card {
-  transition: transform .3s ease, box-shadow .3s ease;
+  transition: transform .3s var(--ease), box-shadow .3s var(--ease);
 }
 #panel-overview .help-steps:hover, #panel-overview .tab-list:hover, #panel-model .model-card:hover, #panel-train .model-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 5%), 0 14px 36px rgb(0 0 0 / 9%);
+  transform: scale(1.01);
+  box-shadow: var(--shadow-hover);
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
