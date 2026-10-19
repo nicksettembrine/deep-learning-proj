@@ -1,58 +1,33 @@
 # Accelerometry Activity Viewer
 
-A web app for viewing, annotating, and classifying raw wearable accelerometry. A small
-neural network reads 4-second windows of the left-wrist signal and predicts the activity: walking, descending stairs, ascending stairs, or driving. The repository includes five held-out test participants and the trained model, so no dataset download is needed.
+A web app for viewing and annotating wrist, hip, and ankle accelerometry, with a neural
+network that classifies 4-second windows of the left-wrist signal as walking, descending
+stairs, ascending stairs, or driving. The repository includes the trained model and five
+test participants, so the dataset does not need to be downloaded.
 
 ## Data
 
-Raw tri-axial accelerometry (x, y, z in g, 100 Hz) from 32 healthy adults wearing four
-ActiGraph sensors (left wrist, left hip, both ankles) while walking outdoors, climbing
-stairs, and driving. Every sample has an activity label. The viewer shows signals
-averaged to 25 Hz; the model uses the 100 Hz wrist signal.
+Raw x, y, and z acceleration at 100 Hz from 32 healthy adults wearing four ActiGraph
+sensors during walking, stair climbing, and driving. Every sample has an activity label.
 
 ## Features
 
-- **Data Viewer:** browse participants (dropdown or ‹ › arrows), choose sensors,
-  switch between stacked and overlay views or magnitude and x/y/z axes, and
-  drag to zoom. **Run model** adds a *Predicted* band under the true activity labels,
-  shows class probabilities on hover, and reports agreement with the true labels.
-- **Model:** the main result, how the model works, MLP-vs-baseline scores,
-  per-participant test scores, loss curves, and the test confusion matrix.
-- **Train (optional challenges):** *interactive training* lets you change the hidden
-  layers, units, activation, learning rate, dropout, and epochs. The *training monitor*
-  shows live loss, accuracy, and macro-F1, then test results and a confusion
-  matrix. A finished run can be used for Run model and reset to the saved model.
-- **Annotation:** Mark an interval, add a label and an optional note, then edit or delete it.
-- **Backend/database:** FastAPI with SQLite stores annotations and serves
-  predictions, metrics, and training.
+The Data Viewer shows each participant's signals and activity labels. Run model adds the
+network's predictions below the true labels. The Model tab shows how the model was trained
+and how well it performs. The Train tab covers both optional challenges: you can change the
+network's settings, retrain it, and watch loss and accuracy update during training.
+
+Annotation is implemented. Users can label, edit, and delete time intervals.
+A backend and database are implemented. FastAPI with SQLite stores annotations and serves
+predictions and training.
 
 ## Model
 
-- **Input:** the raw 4-second left-wrist window, 400 samples × 3 axes = 1,200 numbers,
-  scaled per axis using training-set statistics. Only windows that contain a single
-  activity are used, with 50% overlap.
-- **Network:** MLP 1,200 → 64 → 64 → 4 with ReLU and dropout 0.2 (81,284 parameters);
-  softmax gives class probabilities.
-- **Training:** Adam (learning rate 0.001, batch 128) on class-weighted cross-entropy,
-  so rare stair windows count as much as driving windows. Early stopping keeps the
-  epoch with the best validation macro-F1.
-- **Baseline:** logistic regression (1,200 → 4), trained the same way.
-- **Split:** by participant, 22 train / 5 validation / 5 test. The test participants
-  are the ones in the viewer.
+A multilayer perceptron (1,200 → 64 → 64 → 4, ReLU) trained on raw wrist windows with
+class-weighted cross-entropy and Adam. The data are split by participant. On five held-out
+participants the error rate is 10.3%, compared with 14.8% for a logistic regression baseline.
 
-| Test set (5 unseen people) | Accuracy | **Error** | Macro-F1 |
-|---|---|---|---|
-| MLP | 89.7% | **10.3%** | 0.62 |
-| Logistic regression baseline | 85.2% | 14.8% | 0.50 |
-
-The MLP beats the baseline. Driving is almost always correct (99%). Walking and stairs
-are often confused, because arm swing looks similar on both. The network overfits
-(97.5% train vs. 87.5% validation accuracy), since an MLP has no notion of time in its
-1,200 inputs. A 1D CNN is the planned next step.
-
-![Training and validation loss vs. epoch](backend/model/loss_curve.png)
-
-## Run locally
+## Running the app
 
 Requires Node.js 22.12+ and Python 3.12+. From the project folder:
 
@@ -62,7 +37,7 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install -r backend/requirements.txt
 ```
 
-Then run the backend and frontend in two terminals, and open the URL Vite prints:
+Start the backend and the frontend in two terminals, then open the address Vite prints:
 
 ```sh
 .venv/bin/python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
@@ -72,29 +47,22 @@ Then run the backend and frontend in two terminals, and open the URL Vite prints
 npm run dev
 ```
 
-To retrain the model, run `.venv/bin/python -m training.train`. It uses the included
-`training/cache/windows.npz` and overwrites `backend/model/`. To rebuild from the raw
-data, unzip the PhysioNet dataset into `data/physionet/`, then run
-`scripts/preprocess.py` and `training.train --rebuild`. To run the tests, run
-`.venv/bin/python -m unittest backend.test_app`.
+To retrain the model, run `.venv/bin/python -m training.train`.
 
 ## Libraries
 
-React, Vite, Plotly, FastAPI, Pydantic, Uvicorn, SQLite, PyTorch, NumPy, pandas,
-scikit-learn, and matplotlib.
+React, Vite, Plotly, FastAPI, SQLite, PyTorch, NumPy, pandas, scikit-learn, and matplotlib.
 
-## Data source and license
+## Data source
 
 Karas, M., Urbanek, J., Crainiceanu, C., Harezlak, J., & Fadel, W. (2021).
-[*Labeled raw accelerometry data captured during walking, stair climbing and driving*](https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/)
+[Labeled raw accelerometry data captured during walking, stair climbing and driving](https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/)
 (version 1.0.0). PhysioNet. https://doi.org/10.13026/51h0-a262. Used under the
 [Open Database License v1.0](https://physionet.org/content/accelerometry-walk-climb-drive/view-license/1.0.0/).
 
-## AI assistance
+## AI use
 
-Homework 1 was developed with help from the Codex agent. For Homework 2, Claude Code
-(Anthropic) helped implement the neural network, training code, backend endpoints,
-Model and Train tabs, interface redesign, and this README. The AI proposed options for
-each design decision. I chose and approved each one: the task, the input, the split,
-the architecture, training, the baseline, and the app integration. I reviewed the
-resulting code and results.
+Homework 1 was built with help from Codex. For Homework 2, I used Claude Code to help write
+the model, training, backend, and interface code and this README. I made the design
+decisions (task, input, data split, architecture, training, baseline, and app integration)
+and reviewed the code and results.
