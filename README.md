@@ -37,6 +37,8 @@ best validation macro-F1. I split the data by person: 22 for training, 5 for val
 
 ## Homework 3
 
+The experiment summary is in [hw3/HW3 experiment summary.pdf](hw3/HW3%20experiment%20summary.pdf).
+
 The HW2 model overfits. It gets about 97% on the training people and 87% on the validation
 people, and the validation loss goes up almost right away. My guess was that it was
 memorizing where in the window things happen, since every input has its own weights. When I
