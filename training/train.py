@@ -57,6 +57,20 @@ def evaluate(model, X, y, loss_fn):
     }
 
 
+def shift_windows(X, generator=None):
+    """HW3: rotate each window in time by its own random amount (0 to 4 s).
+
+    X holds flattened windows [x0, y0, z0, x1, y1, z1, ...]. Each one is reshaped to
+    400 time steps x 3 axes, rotated along time (the end wraps around to the start),
+    and flattened again, so the x, y and z values of each time step stay together.
+    """
+    n, steps = len(X), X.shape[1] // 3
+    shifts = torch.randint(0, steps, (n, 1), generator=generator)
+    time_index = (torch.arange(steps) - shifts) % steps          # (n, 400): where each new step comes from
+    rotated = X.view(n, steps, 3)[torch.arange(n)[:, None], time_index]
+    return rotated.reshape(n, -1)
+
+
 def print_epoch(row):
     print(f"  epoch {row['epoch']:3d}  loss train {row['train_loss']:.3f} val {row['val_loss']:.3f}  "
           f"acc train {row['train_acc']:.3f} val {row['val_acc']:.3f}  val macro-F1 {row['val_f1']:.3f}")
@@ -67,6 +81,10 @@ def train_network(hidden, data, loss_fn, args, on_epoch=print_epoch, should_stop
 
     on_epoch(row) is called after every epoch (the app's Train tab uses it for the live curve);
     should_stop() lets the app's Stop button end training early.
+
+    HW3 options (off by default, so HW2 training is unchanged):
+      args.shift    also train on a time-shifted copy of every window
+      args.penalty  weight of the penalty for predicting differently on the two copies
     """
     torch.manual_seed(args.seed)                     # same starting point every run
     model = ActivityNet(data["train"][0].shape[1], N_CLASSES, hidden, args.dropout, args.activation)
@@ -84,6 +102,13 @@ def train_network(hidden, data, loss_fn, args, on_epoch=print_epoch, should_stop
             optimizer.zero_grad()                    # clear gradients from the previous step
             logits = model(X_train[batch])           # forward propagation
             loss = loss_fn(logits, y_train[batch])   # weighted cross-entropy
+            if getattr(args, "shift", False):
+                # HW3: the same windows, rotated in time, should get the same label...
+                logits_shifted = model(shift_windows(X_train[batch]))
+                loss = (loss + loss_fn(logits_shifted, y_train[batch])) / 2
+                # ...and the same predicted probabilities: penalize the squared difference.
+                difference = torch.softmax(logits, dim=1) - torch.softmax(logits_shifted, dim=1)
+                loss = loss + getattr(args, "penalty", 0.0) * (difference ** 2).sum(dim=1).mean()
             loss.backward()                          # backpropagation: gradient of loss for every weight
             optimizer.step()                         # gradient-descent update (Adam)
 

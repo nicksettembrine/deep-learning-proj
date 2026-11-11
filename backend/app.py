@@ -154,6 +154,15 @@ def model_info():
     return {**json.loads(path.read_text()), "per_person": per_person_scores()}
 
 
+@app.get("/api/hw3")
+def hw3_results():
+    """HW3 experiment runs (training/hw3_experiment.py), shown in the Model tab's HW3 section."""
+    path = PROJECT / "hw3" / "results.json"
+    if not path.is_file():
+        raise HTTPException(404, "No HW3 results yet. Run: python -m training.hw3_experiment")
+    return json.loads(path.read_text())
+
+
 @lru_cache(maxsize=1)
 def per_person_scores():
     """Agreement for each test participant in the viewer, computed exactly as the Data Viewer does."""

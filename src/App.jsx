@@ -1,32 +1,35 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Plot from 'react-plotly.js'
 import './App.css'
 import useAnnotations from './useAnnotations'
 import AnnotationPanel, { AnnotationForm } from './AnnotationPanel'
 import ModelPanel from './ModelPanel'
 import TrainPanel from './TrainPanel'
+import Intro from './Intro'
+import { WALK_PATH } from './walkPath'
 
 // HW2 model features (Run model button, predicted band and Model tab).
 const SHOW_MODEL = true
 
-// Colors come from Apple's system palette. Activities use the bright hues; sensors
-// and axes use colors the activity band never uses, so a signal color is never
-// mistaken for an activity label.
+// Colors come from the Okabe-Ito and Paul Tol palettes, which are designed for color-blind
+// viewers. The sets were chosen so every pair stays distinguishable under protanopia,
+// deuteranopia and tritanopia. Sensor and axis colors differ from the activity colors,
+// so a signal color is never mistaken for an activity label.
 // Four ActiGraph GT3X+ devices worn at the same time. Keys match the CSV prefixes.
 const SENSORS = [
   { id: 'lw', label: 'Left wrist', color: '#1D1D1F' },   // graphite
-  { id: 'lh', label: 'Left hip', color: '#A2845E' },     // brown
-  { id: 'la', label: 'Left ankle', color: '#FF3B30' },   // red
-  { id: 'ra', label: 'Right ankle', color: '#8E8E93' },  // gray
+  { id: 'lh', label: 'Left hip', color: '#999933' },     // olive
+  { id: 'la', label: 'Left ankle', color: '#56B4E9' },   // sky blue
+  { id: 'ra', label: 'Right ankle', color: '#EE3377' },  // magenta
 ]
 const AXIS_COLORS = { x: '#FF3B30', y: '#32ADE6', z: '#1D1D1F' }  // red, cyan, graphite
 // Activity codes from the dataset. Order defines the colors in the label band.
 const ACTIVITIES = [
-  { code: 1, label: 'Walking', color: '#007AFF' },            // blue
-  { code: 2, label: 'Descending stairs', color: '#FF9500' },  // orange
-  { code: 3, label: 'Ascending stairs', color: '#AF52DE' },   // purple
-  { code: 4, label: 'Driving', color: '#34C759' },            // green
-  { code: 77, label: 'Clapping', color: '#FFCC00' },          // yellow
+  { code: 1, label: 'Walking', color: '#4477AA' },            // slate blue
+  { code: 2, label: 'Descending stairs', color: '#E69F00' },  // ochre
+  { code: 3, label: 'Ascending stairs', color: '#882255' },   // wine
+  { code: 4, label: 'Driving', color: '#332288' },            // indigo
+  { code: 77, label: 'Clapping', color: '#CC3311' },          // brick
   { code: 99, label: 'Non-study', color: '#E5E5EA' },         // light gray
 ]
 const GRID = '#F0F0F2'
@@ -94,13 +97,28 @@ function App() {
   const selected = catalog.find((recording) => recording.id === selectedId)
   // Stacked/Overlay, Magnitude/x-y-z, and which sensors are shown (left wrist by default: the model's input).
   const [viewPrefs, setViewPrefs] = useState({ viewMode: 'stacked', signalMode: 'vm', sensors: ['lw'] })
+  const [introDone, setIntroDone] = useState(false)
+  // Parts of the app report when they are working (Run model, training); the logo loops meanwhile.
+  const [busyFlags, setBusyFlags] = useState({})
+  const markBusy = useCallback((key, value) =>
+    setBusyFlags((flags) => (Boolean(flags[key]) === value ? flags : { ...flags, [key]: value })), [])
+  const busy = Object.values(busyFlags).some(Boolean)
+  const handleIntroDone = useCallback(() => setIntroDone(true), [])
   const openParticipant = useCallback((id) => { setSelectedId(id); setActiveTab('viewer') }, [])
 
   return (
     <>
+      <Intro onDone={handleIntroDone} />
       <header className="app-bar">
         <div className="app-bar-inner">
-          <div className="brand">Accelerometry Activity Viewer</div>
+          <div className="brand">
+            {/* The same walking signal as the opening animation. It draws itself when the intro ends
+                and again on every tab change (a new key restarts the animation). */}
+            <svg key={activeTab} viewBox="0 0 1000 240" className={`brand-trace${introDone ? ' brand-trace-draw' : ''}${busy ? ' brand-trace-busy' : ''}`} aria-hidden="true">
+              <path d={WALK_PATH} pathLength="1" />
+            </svg>
+            Accelerometry Activity Viewer
+          </div>
           <nav className="app-tabs" role="tablist" aria-label="Project sections">
             {tabs.map((tab, index) => (
               <button key={tab.id} id={`tab-${tab.id}`} role="tab"
@@ -128,7 +146,7 @@ function App() {
         </header>
         <div className="overview-introduction">
           <p>Raw accelerometry from 32 healthy adults wearing four sensors (left wrist, left hip, left ankle, right ankle) during outdoor walking, stair climbing, and driving. Each sample is labeled with the activity. A multilayer perceptron classifies 4-second windows of the left-wrist signal as walking, descending stairs, ascending stairs, or driving.</p>
-          <p className="overview-source">Data: <a href="https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/">Karas et al. (2021), PhysioNet</a></p>
+          <p className="overview-source">Data: <a href="https://physionet.org/content/accelerometry-walk-climb-drive/1.0.0/">Karas et al. (2021), PhysioNet</a>, under the <a href="https://physionet.org/content/accelerometry-walk-climb-drive/view-license/1.0.0/">Open Database License v1.0</a></p>
         </div>
 
         <h2 className="overview-help-heading">Tabs</h2>
@@ -143,9 +161,7 @@ function App() {
         <h2 className="overview-help-heading">Using the Data Viewer</h2>
         <ol className="help-steps">
           <li><h3>Participant</h3><p>Select a participant from the list or with the arrows. All five were held out from training.</p></li>
-          <li><h3>Sensors and view</h3><p>Select the sensors to plot (left wrist by default). Stacked plots each sensor in its own panel; Overlay plots them on one axis. Magnitude or x/y/z.</p></li>
           {SHOW_MODEL && <li><h3>Model predictions</h3><p>Run model adds a Predicted band below the true labels. Hover over it for class probabilities.</p></li>}
-          <li><h3>Zoom</h3><p>Drag across the plot to zoom. Double-click to reset.</p></li>
           <li><h3>Annotations</h3><p>Click Add annotation, then drag over the plot or enter start and end times. Click a saved annotation to zoom to it.</p></li>
         </ol>
       </section>
@@ -158,7 +174,7 @@ function App() {
       {SHOW_MODEL && (
         <section id="panel-train" role="tabpanel" aria-labelledby="tab-train" hidden={activeTab !== 'train'} tabIndex={0}>
           <header className="viewer-header"><h1>Train</h1></header>
-          <TrainPanel active={activeTab === 'train'} />
+          <TrainPanel active={activeTab === 'train'} onBusy={markBusy} />
         </section>
       )}
       {/* Hiding instead of unmounting preserves the complete viewer session. */}
@@ -171,7 +187,7 @@ function App() {
       ) : selected ? (
         // A new key clears the previous signals, zoom and prediction immediately.
         // View choices live here, so they carry over when moving between participants.
-        <RecordingViewer key={selected.id} recording={selected} catalog={catalog}
+        <RecordingViewer key={selected.id} recording={selected} catalog={catalog} onBusy={markBusy}
           onSelect={setSelectedId} prefs={viewPrefs} setPrefs={setViewPrefs} />
       ) : <p className="viewer-message" role="status">Loading recordings…</p>}
       </section>
@@ -180,15 +196,36 @@ function App() {
   )
 }
 
-function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs }) {
+function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs, onBusy }) {
   const annotations = useAnnotations(recording.id)
   const [focus, setFocus] = useState(null)
   const [highlightedId, setHighlightedId] = useState(null)
-  const resetView = useCallback(() => setFocus({ range: null, revision: Date.now() }), [])
+  // The plot reports its visible time range here, so a zoom can start from where the view is now.
+  const visibleRangeRef = useRef(null)
+  const animation = useRef(null)
+  // Glide the visible time range (minutes) to `target` over 0.45 s instead of jumping.
+  const animateTo = useCallback((target) => {
+    cancelAnimationFrame(animation.current)
+    const revision = Date.now()
+    const from = visibleRangeRef.current
+    if (!from || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setFocus({ range: target, revision }); return
+    }
+    const startTime = performance.now()
+    const step = (now) => {
+      const t = Math.min((now - startTime) / 450, 1)
+      const ease = 1 - (1 - t) ** 3                       // fast start, gentle stop
+      setFocus({ range: [from[0] + (target[0] - from[0]) * ease, from[1] + (target[1] - from[1]) * ease], revision })
+      if (t < 1) animation.current = requestAnimationFrame(step)
+    }
+    animation.current = requestAnimationFrame(step)
+  }, [])
+  useEffect(() => () => cancelAnimationFrame(animation.current), [])
+  const resetView = useCallback(() => animateTo([0, recording.duration_s / 60]), [animateTo, recording.duration_s])
   const zoomSeconds = useCallback((start, end) => {
     const padding = Math.max((end - start) * 0.1, 5)
-    setFocus({ range: [(start - padding) / 60, (end + padding) / 60], revision: Date.now() })
-  }, [])
+    animateTo([(start - padding) / 60, (end + padding) / 60])
+  }, [animateTo])
 
   function focusAnnotation(item) {
     setHighlightedId(item.id)
@@ -206,6 +243,8 @@ function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs }) {
   const [retry, setRetry] = useState(0)
   const [prediction, setPrediction] = useState(null)
   const [predicting, setPredicting] = useState(false)
+  useEffect(() => { onBusy('predict', predicting) }, [predicting, onBusy])
+  useEffect(() => () => onBusy('predict', false), [onBusy])
   const [predictError, setPredictError] = useState('')
 
   // Send the recording to the backend, which runs the trained MLP on every 4-s wrist window.
@@ -215,7 +254,7 @@ function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs }) {
       const response = await fetch(`/api/recordings/${encodeURIComponent(recording.id)}/predict`, { method: 'POST' })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body.detail ?? 'Model service unavailable. Start the backend and retry.')
-      setPrediction(body)
+      setPrediction({ ...body, runId: Date.now() })
     } catch (failure) { setPredictError(failure.message) }
     finally { setPredicting(false) }
   }
@@ -239,7 +278,6 @@ function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs }) {
     return () => controller.abort()
   }, [showAxes, xyz, recording.path])
 
-  const demo = recording.demographics ?? {}
   const index = catalog.findIndex((r) => r.id === recording.id)
 
   let body
@@ -249,7 +287,7 @@ function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs }) {
       <button onClick={() => { setError(''); setRetry((value) => value + 1) }}>Retry</button>
     </div>
   )
-  else if (!data) body = <p className="viewer-message" role="status">Loading {recording.participant}…</p>
+  else if (!data) body = <div className="skeleton skeleton-plot" role="status" aria-label={`Loading ${recording.participant}`} />
   else body = (
     <>
       <AnnotationForm annotations={annotations} />
@@ -258,7 +296,7 @@ function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs }) {
       </div>
       {showAxes && !xyz ? <p className="viewer-message" role="status">Loading x/y/z axes…</p> : (
         <SignalPlot data={data} xyz={showAxes ? xyz : null} overlay={overlay} prediction={prediction}
-          selectedSensors={selectedSensors} recordingId={recording.id} focus={focus}
+          selectedSensors={selectedSensors} recordingId={recording.id} focus={focus} visibleRangeRef={visibleRangeRef}
           highlightedId={highlightedId} items={annotations.items} editingId={annotations.editingId}
           hasDraft={Boolean(annotations.draft)} draftStart={annotations.draft?.start_seconds}
           draftEnd={annotations.draft?.end_seconds} onSelected={annotations.select} onReset={resetView} />
@@ -281,7 +319,6 @@ function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs }) {
               onClick={() => onSelect(catalog[index + 1].id)}>›</button>
             <span className="recording-duration">
               {index + 1} of {catalog.length} · {minutes(recording.duration_s)}
-              {demo.age ? ` · ${demo.sex}, ${demo.age} y` : ''}
             </span>
           </div>
           <div className="header-toggles">
@@ -346,12 +383,6 @@ function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs }) {
         {body}
       </section>
       <AnnotationPanel annotations={annotations} onFocus={focusAnnotation} highlightedId={highlightedId} onHighlight={setHighlightedId} />
-      <p className="source-note">
-        Data: <a href={recording.source}>Karas, Urbanek, Crainiceanu, Harezlak &amp; Fadel (2021), PhysioNet</a>,
-        doi:10.13026/51h0-a262, under the{' '}
-        <a href="https://physionet.org/content/accelerometry-walk-climb-drive/view-license/1.0.0/">Open Database License v1.0</a>.
-        Displayed at 25 Hz (block means of the raw 100 Hz signal).
-      </p>
     </>
   )
 }
@@ -359,9 +390,27 @@ function RecordingViewer({ recording, catalog, onSelect, prefs, setPrefs }) {
 // Text edits stay in the lightweight form. Only signal, interval, or chart
 // changes cross this memo boundary, avoiding Plotly redraws on each keystroke.
 const SignalPlot = memo(function SignalPlot({ data, xyz, overlay, prediction, selectedSensors,
-  recordingId, focus, highlightedId, items, editingId, hasDraft, draftStart,
+  recordingId, focus, visibleRangeRef, highlightedId, items, editingId, hasDraft, draftStart,
   draftEnd, onSelected, onReset }) {
   const { vm, activity } = data
+  // Plotly reports where it drew the plot area; the Predicted-band reveal is placed from it.
+  const [plotArea, setPlotArea] = useState(null)
+  const trackPlotArea = useCallback((figure, graphDiv) => {
+    visibleRangeRef.current = graphDiv._fullLayout.xaxis.range.slice()
+    const { l, t, w, h } = graphDiv._fullLayout._size
+    setPlotArea((old) => old && old.l === l && old.t === t && old.w === w && old.h === h ? old : { l, t, w, h })
+  }, [visibleRangeRef])
+  // A thin vertical line follows the cursor through every band and panel. It is moved directly
+  // (no React re-render), so it stays smooth over the large plots.
+  const hoverLine = useRef(null)
+  function moveHoverLine(event) {
+    const line = hoverLine.current
+    if (!line || !plotArea) return
+    const x = event.clientX - event.currentTarget.getBoundingClientRect().left
+    const inside = x >= plotArea.l && x <= plotArea.l + plotArea.w
+    line.style.opacity = inside ? 1 : 0
+    if (inside) line.style.transform = `translateX(${x}px)`
+  }
   // Time is implicit in the files (sample i at i / fs seconds); build it once, in minutes.
   const length = vm.sensors.lw.length
   const time = useMemo(() => Float64Array.from({ length }, (_, i) => i / vm.fs / 60), [length, vm.fs])
@@ -449,6 +498,8 @@ const SignalPlot = memo(function SignalPlot({ data, xyz, overlay, prediction, se
   }
 
   return (
+    <div className="signal-plot" onMouseMove={moveHoverLine}
+      onMouseLeave={() => { if (hoverLine.current) hoverLine.current.style.opacity = 0 }}>
     <Plot
       // Remount when changing arrangement to clear obsolete axes.
       key={`${overlay ? 'overlay' : `stacked-${xyz ? 'xyz' : 'vm'}`}-${selectedSensors.join('-')}`}
@@ -486,6 +537,8 @@ const SignalPlot = memo(function SignalPlot({ data, xyz, overlay, prediction, se
       }}
       onSelected={onSelected}
       onDoubleClick={onReset}
+      onInitialized={trackPlotArea}
+      onUpdate={trackPlotArea}
       useResizeHandler
       className="signal-chart"
       style={{ height: area + margin.t + margin.b }}
@@ -498,6 +551,15 @@ const SignalPlot = memo(function SignalPlot({ data, xyz, overlay, prediction, se
         }],
       }}
     />
+    {plotArea && <div ref={hoverLine} className="hover-line" aria-hidden="true" style={{ top: plotArea.t, height: plotArea.h }} />}
+    {/* A white cover that slides away left to right, so new predictions read as being drawn in. */}
+    {prediction && plotArea && (
+      <div key={prediction.runId} className="band-reveal" aria-hidden="true" style={{
+        left: plotArea.l, width: plotArea.w,
+        top: plotArea.t + ((BAND_PX + BAND_GAP) / area) * plotArea.h, height: (BAND_PX / area) * plotArea.h,
+      }} />
+    )}
+    </div>
   )
 })
 

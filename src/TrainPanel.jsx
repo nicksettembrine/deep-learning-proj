@@ -30,12 +30,13 @@ const describe = (s) => s.hidden_layers === 0 ? 'logistic regression'
   : `${s.hidden_layers} × ${s.units}, ${s.activation === 'relu' ? 'ReLU' : s.activation}, lr ${s.learning_rate}, dropout ${s.dropout}`
 
 // Interactive training (choose settings, train, stop) and a live training monitor.
-export default function TrainPanel({ active }) {
+export default function TrainPanel({ active, onBusy }) {
   const [settings, setSettings] = useState(DEFAULTS)
   const [state, setState] = useState(null)
   const [saved, setSaved] = useState(null)
   const [error, setError] = useState('')
   const busy = BUSY.includes(state?.status)
+  useEffect(() => { onBusy('train', busy) }, [busy, onBusy])
 
   const refresh = useCallback(() => call('/api/train').then(setState).catch((e) => setError(e.message)), [])
 
@@ -48,10 +49,10 @@ export default function TrainPanel({ active }) {
 
   // While training, poll twice a second so the curve draws itself epoch by epoch.
   useEffect(() => {
-    if (!active || !busy) return
+    if (!busy) return    // keep polling during a run even on another tab
     const timer = setInterval(refresh, 500)
     return () => clearInterval(timer)
-  }, [active, busy, refresh])
+  }, [busy, refresh])
 
   async function act(path, body) {
     setError('')
@@ -95,6 +96,13 @@ export default function TrainPanel({ active }) {
               : <button className="primary-button" onClick={() => act('/api/train', settings)}>Train</button>}
             <button onClick={() => setSettings(DEFAULTS)} disabled={busy}>Reset settings</button>
           </div>
+          {state && state.status !== 'idle' && state.status !== 'error' && state.settings && (
+            // Fills as epochs complete; a run that stops early on its own counts as complete.
+            <div className="train-progress" role="progressbar" aria-label="Training progress"
+              aria-valuemin={0} aria-valuemax={state.settings.epochs} aria-valuenow={state.epoch ?? 0}>
+              <div style={{ width: `${state.status === 'done' ? 100 : (100 * (state.epoch ?? 0)) / state.settings.epochs}%` }} />
+            </div>
+          )}
           {error && <p className="train-error" role="alert">{error}</p>}
         </section>
 
@@ -117,7 +125,7 @@ export default function TrainPanel({ active }) {
               series={[['Training loss', h.train_loss, TRAIN_COLOR], ['Validation loss', h.val_loss, VAL_COLOR]]} />
             <LiveChart title="Accuracy and macro-F1" epochs={h.epoch} best={state?.best_epoch} yTitle="Score" range={[0, 1]}
               series={[['Training accuracy', h.train_acc, TRAIN_COLOR], ['Validation accuracy', h.val_acc, VAL_COLOR],
-                ['Validation macro-F1', h.val_f1, '#FF9500']]} />
+                ['Validation macro-F1', h.val_f1, '#E69F00']]} />
           </div>
         </section>
       </div>

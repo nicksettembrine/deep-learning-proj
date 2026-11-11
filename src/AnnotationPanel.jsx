@@ -41,7 +41,8 @@ export default function AnnotationPanel({ annotations: a, onFocus, highlightedId
       {a.loading ? <p role="status">Loading annotations…</p> : a.error ? (
         <div role="alert"><p>{a.error}</p><button onClick={a.retry}>Retry</button></div>
       ) : !a.items.length && <p>No annotations yet.</p>}
-      {!a.draft && a.message && <p role="status">{a.message}</p>}
+      {!a.draft && a.message && !CONFIRMATIONS.includes(a.message) && <p role="status">{a.message}</p>}
+      <Toast message={CONFIRMATIONS.includes(a.message) ? a.message : ''} />
       <ul className="annotation-list">
         {a.items.map((item) => <li key={item.id} className={highlightedId === item.id ? 'highlighted-annotation' : ''} onMouseEnter={() => onHighlight(item.id)} onMouseLeave={() => onHighlight(null)} onFocus={() => onHighlight(item.id)} onBlur={() => onHighlight(null)}>
           <div className="annotation-details"><button className="annotation-jump" onClick={() => onFocus(item)} aria-label={`Zoom to ${item.label}`}>{item.label}</button>
@@ -56,4 +57,12 @@ export default function AnnotationPanel({ annotations: a, onFocus, highlightedId
       </ul>
     </section>
   )
+}
+
+// Short confirmations appear as a message that rises from the bottom of the screen and fades.
+const CONFIRMATIONS = ['Annotation saved.', 'Annotation deleted.']
+
+function Toast({ message }) {
+  // Mounts each time a confirmation appears; the CSS animation fades it out, so no timer is needed.
+  return message ? <div key={message} className="toast" role="status">{message}</div> : null
 }

@@ -40,6 +40,10 @@ backend/data/
 *.zip
 *.zip.download/
 
-# Local Claude Code notes and settings.
+# Local notes and settings.
 CLAUDE.md
 .claude/
+AGENTS.md
+
+# Personal video script.
+hw3-video-script.txt
