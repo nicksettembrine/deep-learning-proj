@@ -47,3 +47,8 @@ AGENTS.md
 
 # Personal video script.
 hw3-video-script.txt
+
+# Files the training scripts regenerate that the app does not use.
+backend/model/baseline.pt
+backend/model/loss_curve.png
+hw3/results.md

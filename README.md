@@ -37,7 +37,12 @@ best validation macro-F1. I split the data by person: 22 for training, 5 for val
 
 ## Homework 3
 
-The experiment summary is in [hw3/HW3 experiment summary.pdf](hw3/HW3%20experiment%20summary.pdf).
+Where to find the Homework 3 parts:
+
+- Experiment summary: [hw3/HW3 experiment summary.pdf](hw3/HW3%20experiment%20summary.pdf)
+- Experiment code: `training/hw3_experiment.py` (the shift and penalty are in `training/train.py`)
+- Results: `hw3/results.json` and `hw3/loss_curves.png`, also shown in the app under Model, HW3 experiment
+- Demo video: submitted on Canvas
 
 The HW2 model overfits. It gets about 97% on the training people and 87% on the validation
 people, and the validation loss goes up almost right away. My guess was that it was
